@@ -1,0 +1,464 @@
+.app {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 4rem;
+}
+
+header h1 {
+  margin: 0;
+  font-size: 1.6rem;
+}
+
+.subtitle {
+  color: var(--text-secondary);
+  margin-top: 0.25rem;
+}
+
+.contract-form {
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1.25rem;
+  margin-top: 1.5rem;
+}
+
+.form-controls {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.form-controls label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.form-controls input[type="checkbox"] {
+  width: fit-content;
+}
+
+.outcomes-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 0.5rem;
+}
+
+.outcomes-table th,
+.outcomes-table td {
+  text-align: left;
+  padding: 0.4rem 0.5rem;
+  border-bottom: 1px solid var(--gridline);
+  font-variant-numeric: tabular-nums;
+}
+
+.outcomes-table th {
+  color: var(--text-muted);
+  font-weight: 500;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+/* ---- contract input rows ---- */
+
+.contract-rows-header {
+  display: grid;
+  grid-template-columns: 1.75rem minmax(220px, 2fr) minmax(190px, 1.4fr) minmax(170px, 1fr) minmax(190px, auto);
+  gap: 0.75rem;
+  padding: 0 0.25rem;
+  margin-top: 1rem;
+  color: var(--text-muted);
+  font-weight: 500;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.contract-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-top: 0.35rem;
+}
+
+.contract-row {
+  display: grid;
+  grid-template-columns: 1.75rem minmax(220px, 2fr) minmax(190px, 1.4fr) minmax(170px, 1fr) minmax(190px, auto);
+  gap: 0.75rem;
+  align-items: start;
+  padding: 0.5rem 0.25rem;
+  border-radius: 8px;
+}
+
+.contract-row:hover {
+  background: var(--surface-2);
+}
+
+.row-index {
+  padding-top: 0.35rem;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.row-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.row-field input {
+  width: 100%;
+  padding: 0.3rem 0.4rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface-1);
+  color: var(--text-primary);
+}
+
+.collection-hint {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.row-field-copy {
+  padding-top: 1px;
+  display: flex;
+  gap: 0.35rem;
+}
+
+.row-field-copy button {
+  flex: 1;
+  padding: 0.4rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface-1);
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.row-field-copy button.tiny {
+  flex: 0 0 auto;
+  padding: 0.4rem 0.55rem;
+  font-size: 0.72rem;
+}
+
+.row-field-copy button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.row-field-copy button:not(:disabled):hover {
+  border-color: var(--series-1);
+  color: var(--series-1);
+}
+
+/* ---- float slider + manual entry ---- */
+
+.float-input {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.float-input input[type="range"] {
+  width: 100%;
+  accent-color: var(--series-1);
+}
+
+.float-input-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.float-input-row input[type="number"] {
+  flex: 1;
+  min-width: 0;
+}
+
+.float-input-row input[type="number"].invalid {
+  border-color: var(--status-critical);
+  outline-color: var(--status-critical);
+}
+
+.float-hint {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.float-hint-error {
+  color: var(--status-critical);
+}
+
+.wear-badge {
+  flex-shrink: 0;
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.15rem 0.5rem;
+  white-space: nowrap;
+}
+
+/* ---- price paid + market hint ---- */
+
+.price-hint {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.price-hint-button {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--series-1);
+  cursor: pointer;
+  text-align: left;
+  width: fit-content;
+}
+
+.price-hint-button:hover {
+  text-decoration: underline;
+}
+
+.autocomplete {
+  position: relative;
+}
+
+.autocomplete input {
+  width: 100%;
+  padding: 0.3rem 0.4rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface-1);
+  color: var(--text-primary);
+}
+
+.autocomplete-list {
+  position: absolute;
+  z-index: 10;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin: 2px 0 0;
+  padding: 0.25rem 0;
+  list-style: none;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  max-height: 220px;
+  overflow-y: auto;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+}
+
+.autocomplete-list li {
+  padding: 0.4rem 0.6rem;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+}
+
+.autocomplete-list li:hover {
+  background: var(--surface-2);
+}
+
+.autocomplete-list li.disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.autocomplete-list li.disabled:hover {
+  background: none;
+}
+
+.float-range {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+.form-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--gridline);
+}
+
+.running-total {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.running-total .label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.running-total .value {
+  font-size: 1.15rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.running-total .muted {
+  font-size: 0.8rem;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.form-footer-actions {
+  display: flex;
+  gap: 0.6rem;
+}
+
+.contract-form button[type="submit"] {
+  padding: 0.55rem 1.25rem;
+  border: none;
+  border-radius: 8px;
+  background: var(--series-1);
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.contract-form button[type="submit"]:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.contract-form button.secondary {
+  padding: 0.55rem 1.25rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-1);
+  color: var(--text-secondary);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.contract-form button.secondary:hover {
+  border-color: var(--status-critical);
+  color: var(--status-critical);
+}
+
+.error-banner {
+  margin-top: 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--status-critical) 12%, var(--surface-1));
+  border: 1px solid var(--status-critical);
+  color: var(--text-primary);
+}
+
+.results-panel {
+  margin-top: 2rem;
+}
+
+.summary-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.75rem;
+}
+
+.card {
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.9rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.card .label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.card .value {
+  font-size: 1.4rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.card.positive .value {
+  color: var(--status-good);
+}
+
+.card.negative .value {
+  color: var(--status-critical);
+}
+
+.monte-carlo-bar {
+  display: flex;
+  height: 20px;
+  border-radius: 6px;
+  overflow: hidden;
+  gap: 2px;
+  background: var(--gridline);
+  margin-top: 0.5rem;
+}
+
+.monte-carlo-bar .segment {
+  height: 100%;
+  min-width: 0;
+}
+
+.monte-carlo-bar .segment.profit {
+  background: var(--status-good);
+}
+
+.monte-carlo-bar .segment.breakeven {
+  background: var(--status-warning);
+}
+
+.monte-carlo-bar .segment.loss {
+  background: var(--status-critical);
+}
+
+.monte-carlo-legend {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+}
+
+.dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 0.3rem;
+  vertical-align: middle;
+}
+
+.dot.profit {
+  background: var(--status-good);
+}
+
+.dot.breakeven {
+  background: var(--status-warning);
+}
+
+.dot.loss {
+  background: var(--status-critical);
+}
