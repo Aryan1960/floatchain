@@ -22,10 +22,12 @@ synthetic_snapshots is never touched here either.
 
 from __future__ import annotations
 
+import csv
 import os
 import random
 import sys
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
 
 import numpy as np
@@ -33,6 +35,25 @@ import numpy as np
 BACKEND_DIR = Path(__file__).resolve().parent.parent
 os.chdir(BACKEND_DIR)
 sys.path.insert(0, str(BACKEND_DIR))
+
+HISTORY_FILE = BACKEND_DIR / ".cache" / "eval_history.csv"
+HISTORY_FIELDS = [
+    "timestamp", "real_rows_total", "evaluated_skins", "beat_baseline",
+    "beat_csfloat", "csfloat_comparable", "avg_our_mae_cents",
+    "avg_baseline_mae_cents", "avg_csfloat_mae_cents",
+]
+
+
+def _append_history(row: dict) -> None:
+    """One line per run -- this is what lets us actually see whether real
+    performance trends up as more data accumulates, instead of comparing
+    today's single run against memory of an earlier one."""
+    is_new = not HISTORY_FILE.exists()
+    with HISTORY_FILE.open("a", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=HISTORY_FIELDS)
+        if is_new:
+            writer.writeheader()
+        writer.writerow(row)
 
 from app.config import get_settings  # noqa: E402
 from app.data.pricing_store import PricingStore  # noqa: E402
@@ -149,6 +170,7 @@ def main() -> None:
                 skipped.append((name, outcome))
             else:
                 results.append(outcome)
+        real_rows_total, _ = store.total_counts()
     finally:
         store.close()
 
@@ -163,6 +185,17 @@ def main() -> None:
 
     if not results:
         print("Nothing evaluable yet.")
+        _append_history({
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "real_rows_total": real_rows_total,
+            "evaluated_skins": 0,
+            "beat_baseline": 0,
+            "beat_csfloat": 0,
+            "csfloat_comparable": 0,
+            "avg_our_mae_cents": "",
+            "avg_baseline_mae_cents": "",
+            "avg_csfloat_mae_cents": "",
+        })
         return
 
     results.sort(key=lambda r: r.our_mape)
@@ -208,6 +241,19 @@ def main() -> None:
         print(f"  Average CSFloat MAE:  ${np.mean(csfloat_maes)/100:.2f}")
     else:
         print("  No skins had CSFloat predicted_price on held-out points to compare against.")
+
+    _append_history({
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "real_rows_total": real_rows_total,
+        "evaluated_skins": len(results),
+        "beat_baseline": beat_baseline_count,
+        "beat_csfloat": beat_csfloat_count,
+        "csfloat_comparable": csfloat_comparable_count,
+        "avg_our_mae_cents": round(float(np.mean(our_maes)), 1),
+        "avg_baseline_mae_cents": round(float(np.mean(baseline_maes)), 1),
+        "avg_csfloat_mae_cents": round(float(np.mean(csfloat_maes)), 1) if csfloat_maes else "",
+    })
+    print(f"\n(appended to {HISTORY_FILE.relative_to(BACKEND_DIR)} for trend tracking)")
 
 
 if __name__ == "__main__":
