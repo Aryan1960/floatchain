@@ -39,24 +39,44 @@ class CsFloatClient:
     async def get_listings(
         self,
         *,
-        market_hash_name: str,
+        market_hash_name: str | None = None,
+        paint_index: str | None = None,
+        min_float: float | None = None,
+        max_float: float | None = None,
+        category: int | None = None,
         limit: int = 50,
         sort_by: str = "lowest_price",
     ) -> list[dict]:
-        cache_key = f"{market_hash_name}|{limit}|{sort_by}"
+        """market_hash_name pins the query to one specific wear tier (that's
+        baked into the name, Steam-style). paint_index is wear-independent,
+        so combining it with min_float/max_float spans a skin's whole float
+        range in a single call -- the more efficient option when sampling
+        broadly rather than pricing one exact wear."""
+        if market_hash_name is None and paint_index is None:
+            raise ValueError("must provide market_hash_name or paint_index")
+
+        params: dict[str, str | int | float] = {
+            "limit": min(limit, 50),
+            "sort_by": sort_by,
+        }
+        if market_hash_name is not None:
+            params["market_hash_name"] = market_hash_name
+        if paint_index is not None:
+            params["paint_index"] = paint_index
+        if min_float is not None:
+            params["min_float"] = min_float
+        if max_float is not None:
+            params["max_float"] = max_float
+        if category is not None:
+            params["category"] = category
+
+        cache_key = "|".join(f"{k}={v}" for k, v in sorted(params.items()))
         cached = self._cache.get(cache_key)
         if cached and (time.time() - cached[0]) < self._settings.csfloat_cache_ttl_seconds:
             return cached[1]
 
         await self._respect_rate_limit()
-        response = await self._client.get(
-            "/listings",
-            params={
-                "market_hash_name": market_hash_name,
-                "limit": min(limit, 50),
-                "sort_by": sort_by,
-            },
-        )
+        response = await self._client.get("/listings", params=params)
         response.raise_for_status()
         body = response.json()
         # Live responses are paginated envelopes ({"data": [...], "cursor": ...}),

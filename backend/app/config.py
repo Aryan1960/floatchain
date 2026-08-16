@@ -17,6 +17,9 @@ class Settings(BaseSettings):
     csfloat_cache_ttl_seconds: int = 300
     csfloat_min_request_interval_seconds: float = 1.0
 
+    pricing_db_path: str = ".cache/pricing.db"
+    collector_pause_flag_path: str = ".cache/collector.disabled"
+
     @property
     def cors_origin_list(self) -> list[str]:
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]

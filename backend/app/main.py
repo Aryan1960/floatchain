@@ -8,7 +8,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import get_settings
 from app.data.csfloat_client import CsFloatClient
 from app.data.csgo_catalog import CsgoCatalog
-from app.routers import contracts, skins
+from app.data.pricing_store import PricingStore
+from app.routers import contracts, pricing, skins
 
 
 @asynccontextmanager
@@ -16,9 +17,11 @@ async def lifespan(app: FastAPI):
     settings = get_settings()
     app.state.catalog = CsgoCatalog(settings)
     app.state.csfloat = CsFloatClient(settings)
+    app.state.pricing_store = PricingStore(settings.pricing_db_path)
     await app.state.catalog.load()
     yield
     await app.state.csfloat.aclose()
+    app.state.pricing_store.close()
 
 
 app = FastAPI(title="FloatChain API", lifespan=lifespan)
@@ -33,6 +36,7 @@ app.add_middleware(
 
 app.include_router(skins.router)
 app.include_router(contracts.router)
+app.include_router(pricing.router)
 
 
 @app.get("/api/health")

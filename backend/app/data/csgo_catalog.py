@@ -90,4 +90,5 @@ def _parse_skin(item: dict) -> SkinCatalogEntry | None:
         stattrak=bool(item.get("stattrak", False)),
         souvenir=bool(item.get("souvenir", False)),
         collections=collections,
+        paint_index=str(item.get("paint_index") or ""),
     )

@@ -14,6 +14,11 @@ class SkinCatalogEntry:
     stattrak: bool
     souvenir: bool
     collections: tuple[str, ...]
+    # Wear-independent pattern identifier CSFloat's /listings accepts as a
+    # query param, letting a single call span a skin's whole float range
+    # instead of one call per wear tier. Empty string if the source catalog
+    # entry didn't have one (defaulted so existing call sites don't break).
+    paint_index: str = ""
 
 
 @dataclass(frozen=True)
