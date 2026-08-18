@@ -36,7 +36,9 @@ BACKEND_DIR = Path(__file__).resolve().parent.parent
 os.chdir(BACKEND_DIR)
 sys.path.insert(0, str(BACKEND_DIR))
 
-HISTORY_FILE = BACKEND_DIR / ".cache" / "eval_history.csv"
+from app.config import get_settings  # noqa: E402
+
+HISTORY_FILE = BACKEND_DIR / get_settings().eval_history_path
 HISTORY_FIELDS = [
     "timestamp", "real_rows_total", "evaluated_skins", "beat_baseline",
     "beat_csfloat", "csfloat_comparable", "avg_our_mae_cents",
@@ -55,7 +57,6 @@ def _append_history(row: dict) -> None:
             writer.writeheader()
         writer.writerow(row)
 
-from app.config import get_settings  # noqa: E402
 from app.data.pricing_store import PricingStore  # noqa: E402
 from app.data.tracked_skins import TRACKED_SKINS  # noqa: E402
 from app.pricing.anomaly import filter_outliers  # noqa: E402

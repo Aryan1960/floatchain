@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import csv
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -79,23 +80,61 @@ async def anomalies(
 async def status(
     store: PricingStore = Depends(get_pricing_store),
     settings: Settings = Depends(get_settings),
+    catalog: CsgoCatalog = Depends(get_catalog),
 ):
     """Data-collection progress: how much real vs. synthetic data exists,
-    per skin, and whether the collector is currently paused."""
+    per skin, and whether the collector is currently paused. Includes each
+    tracked skin's float range so callers (the frontend's predictor picker)
+    can build a skin selector scoped to exactly what has real data, with
+    everything FloatInput needs, in one call -- rather than the full
+    2000+-skin catalog search, most of which was never collected for."""
     real_total, synthetic_total = store.total_counts()
     paused = Path(settings.collector_pause_flag_path).exists()
+
+    by_skin = []
+    for row in store.real_summary_by_skin():
+        skin = catalog.get(row["skin_name"])
+        by_skin.append({
+            "skin_name": row["skin_name"],
+            "stattrak": bool(row["stattrak"]),
+            "sample_count": row["n"],
+            "first_seen_at": row["first_seen_at"],
+            "last_seen_at": row["last_seen_at"],
+            "min_float": skin.min_float if skin else None,
+            "max_float": skin.max_float if skin else None,
+        })
+
     return {
         "collector_paused": paused,
         "real_rows": real_total,
         "synthetic_rows": synthetic_total,
-        "by_skin": [
-            {
-                "skin_name": row["skin_name"],
-                "stattrak": bool(row["stattrak"]),
-                "sample_count": row["n"],
-                "first_seen_at": row["first_seen_at"],
-                "last_seen_at": row["last_seen_at"],
-            }
-            for row in store.real_summary_by_skin()
-        ],
+        "by_skin": by_skin,
     }
+
+
+@router.get("/eval-history")
+async def eval_history(settings: Settings = Depends(get_settings)):
+    """The trend of scheduled evaluate_pricing_model.py runs (see backend/
+    scripts/evaluate_pricing_model.py) -- one row per run, so callers can see
+    whether real performance is actually trending, not just its latest
+    value. Read-only: never triggers a new evaluation, just reads whatever
+    the periodic FloatChainEval task has already written."""
+    path = Path(settings.eval_history_path)
+    if not path.exists():
+        return []
+
+    rows = []
+    with path.open(newline="") as f:
+        for row in csv.DictReader(f):
+            rows.append({
+                "timestamp": row["timestamp"],
+                "real_rows_total": int(row["real_rows_total"]),
+                "evaluated_skins": int(row["evaluated_skins"]),
+                "beat_baseline": int(row["beat_baseline"]),
+                "beat_csfloat": int(row["beat_csfloat"]),
+                "csfloat_comparable": int(row["csfloat_comparable"]),
+                "avg_our_mae": _cents_to_dollars(float(row["avg_our_mae_cents"])) if row["avg_our_mae_cents"] else None,
+                "avg_baseline_mae": _cents_to_dollars(float(row["avg_baseline_mae_cents"])) if row["avg_baseline_mae_cents"] else None,
+                "avg_csfloat_mae": _cents_to_dollars(float(row["avg_csfloat_mae_cents"])) if row["avg_csfloat_mae_cents"] else None,
+            })
+    return rows

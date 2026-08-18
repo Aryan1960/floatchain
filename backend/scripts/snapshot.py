@@ -72,6 +72,52 @@ RATE_LIMIT_RETRY_DELAY_SECONDS = 15.0
 MAX_RATE_LIMIT_RETRY_DELAY_SECONDS = 30.0
 HEALTH_FILE = BACKEND_DIR / ".cache" / "collector_health.json"
 
+# Once CSFloat is actually rate-limiting us (not just one flaky call), keep
+# marching through the remaining skins/queries at the same cadence *extends*
+# the lockout instead of waiting it out -- confirmed directly: a single test
+# run logged 274 failed requests over ~20 minutes doing exactly that. A small
+# number of consecutive fully-exhausted 429s (i.e. ones that survived
+# _fetch_with_retry's own per-call backoff) trips this breaker and aborts the
+# rest of the run outright, leaving it to the next scheduled tick instead.
+RATE_LIMIT_CIRCUIT_BREAKER_THRESHOLD = 3
+
+# CSFloat's real budget was measured live via its X-RateLimit-* headers as
+# 200 requests per a ~2-hour window (not the 15-minute schedule cadence we'd
+# assumed) -- reverse-engineering the exact refill behavior isn't reliable,
+# so instead of hardcoding a request budget per sweep, stop proactively once
+# the live remaining count reported by CSFloat itself gets low, before we'd
+# ever actually draw a 429. The margin needs to comfortably clear one skin's
+# worth of queries (4) so a sweep doesn't stop mid-skin right at the wire.
+RATE_LIMIT_SAFETY_MARGIN = 12
+
+
+class _CircuitBreaker:
+    def __init__(self, threshold: int = RATE_LIMIT_CIRCUIT_BREAKER_THRESHOLD):
+        self.threshold = threshold
+        self.consecutive_rate_limits = 0
+        self._tripped_reason: str | None = None
+
+    def record_success(self) -> None:
+        self.consecutive_rate_limits = 0
+
+    def record_rate_limited(self) -> None:
+        self.consecutive_rate_limits += 1
+        if self.consecutive_rate_limits >= self.threshold and self._tripped_reason is None:
+            self._tripped_reason = f"{self.consecutive_rate_limits} consecutive rate-limited fetches"
+
+    def check_budget(self, csfloat: CsFloatClient) -> None:
+        remaining = csfloat.last_rate_limit_remaining
+        if remaining is not None and remaining < RATE_LIMIT_SAFETY_MARGIN and self._tripped_reason is None:
+            self._tripped_reason = f"only {remaining} requests left in CSFloat's rate-limit window"
+
+    @property
+    def tripped(self) -> bool:
+        return self._tripped_reason is not None
+
+    @property
+    def reason(self) -> str:
+        return self._tripped_reason or ""
+
 
 def _dns_resolves(host: str = DNS_CHECK_HOST, timeout: float = 3.0) -> bool:
     try:
@@ -111,23 +157,48 @@ def _write_health(*, attempted: int, failed: int, new: int, duplicate: int, note
 
 def _retry_delay_for(exc: Exception) -> tuple[float, str]:
     """Returns (delay_seconds, label) -- a 429 gets a much longer, server-
-    directed backoff; anything else gets the short transient-error delay."""
+    directed backoff; anything else gets the short transient-error delay.
+
+    CSFloat doesn't send Retry-After, but it does send standard
+    X-RateLimit-* headers (confirmed live: limit=200, remaining, reset as a
+    Unix timestamp) -- that reset time is a real, accurate signal for how
+    long the current window has left, so prefer it over the blind guess.
+    Still capped at MAX_RATE_LIMIT_RETRY_DELAY_SECONDS: this is only the
+    delay for one in-process retry, not a promise to wait out the whole
+    window -- if the real reset is farther off than that, better to let this
+    attempt fail (feeding the circuit breaker) than block the whole sweep.
+    """
     if isinstance(exc, httpx.HTTPStatusError) and exc.response.status_code == 429:
-        retry_after = exc.response.headers.get("Retry-After", "")
-        delay = float(retry_after) if retry_after.isdigit() else RATE_LIMIT_RETRY_DELAY_SECONDS
-        return min(delay, MAX_RATE_LIMIT_RETRY_DELAY_SECONDS), "rate limited (429)"
+        headers = exc.response.headers
+        reset_at = headers.get("X-RateLimit-Reset", "")
+        retry_after = headers.get("Retry-After", "")
+        if reset_at.isdigit():
+            delay = float(reset_at) - time.time()
+        elif retry_after.isdigit():
+            delay = float(retry_after)
+        else:
+            delay = RATE_LIMIT_RETRY_DELAY_SECONDS
+        return max(0.0, min(delay, MAX_RATE_LIMIT_RETRY_DELAY_SECONDS)), "rate limited (429)"
     return FETCH_RETRY_DELAY_SECONDS, "fetch failed"
 
 
-async def _fetch_with_retry(csfloat: CsFloatClient, *, skin_name: str, sort_by: str, **kwargs) -> list[dict] | None:
+async def _fetch_with_retry(
+    csfloat: CsFloatClient, *, skin_name: str, sort_by: str, breaker: _CircuitBreaker, **kwargs
+) -> list[dict] | None:
     """Retries a fetch a couple of times on transient errors (DNS blips,
     momentary connection resets, rate limiting) before giving up on this one
     call. Returns None (not an exception) on final failure, so callers can
-    just count it."""
+    just count it. Feeds the shared circuit breaker so a run of consecutive
+    429s (as opposed to occasional unrelated failures) can abort the whole
+    sweep instead of continuing to add pressure."""
+    last_exc: Exception | None = None
     for attempt in range(1, FETCH_RETRY_ATTEMPTS + 1):
         try:
-            return await csfloat.get_listings(sort_by=sort_by, **kwargs)
+            listings = await csfloat.get_listings(sort_by=sort_by, **kwargs)
+            breaker.record_success()
+            return listings
         except Exception as exc:
+            last_exc = exc
             delay, label = _retry_delay_for(exc)
             if attempt < FETCH_RETRY_ATTEMPTS:
                 log.warning(
@@ -140,11 +211,13 @@ async def _fetch_with_retry(csfloat: CsFloatClient, *, skin_name: str, sort_by: 
                     "%s for %r (sort_by=%s) after %d attempts: %s",
                     label, skin_name, sort_by, FETCH_RETRY_ATTEMPTS, exc,
                 )
+    if isinstance(last_exc, httpx.HTTPStatusError) and last_exc.response.status_code == 429:
+        breaker.record_rate_limited()
     return None
 
 
 async def sweep_skin(
-    csfloat: CsFloatClient, store: PricingStore, skin: SkinCatalogEntry
+    csfloat: CsFloatClient, store: PricingStore, skin: SkinCatalogEntry, breaker: _CircuitBreaker
 ) -> tuple[int, int, int, int]:
     """Returns (new_count, duplicate_count, failed_count, attempted_count) for one skin."""
     if not skin.paint_index:
@@ -158,18 +231,40 @@ async def sweep_skin(
     attempted = 0
 
     # paint_index is wear-independent, so this spans the skin's whole float
-    # range in one call. Query both float-sorted directions so rare extremes
-    # (near-FN, near-BS) get deliberate coverage rather than only whatever a
-    # single default sort happens to surface.
-    for sort_by in ("lowest_float", "highest_float"):
+    # range in one call. The two extreme-sorted queries only ever surface
+    # listings near min_float/max_float though -- confirmed in practice to
+    # leave a wide dead zone with zero points in the middle of a skin's range
+    # (e.g. AK-47 | Redline had nothing between 0.15 and 0.60), which starves
+    # the curve model of the data it needs to fit anything but the edges. Two
+    # more queries narrowed to the middle half of the range (by min/max_float,
+    # not by sort) fill that gap -- both lowest_float and highest_float within
+    # that narrower band, mirroring the full-range pair, since a single sort
+    # within the band was confirmed to just cluster near the band's own low
+    # edge rather than spreading across it (limit=50 per call means a liquid
+    # skin's lowest-float listings in-band don't reach the band's far edge).
+    range_span = skin.max_float - skin.min_float
+    mid_low = skin.min_float + range_span * 0.25
+    mid_high = skin.min_float + range_span * 0.75
+    queries = (
+        ("lowest_float", skin.min_float, skin.max_float),
+        ("highest_float", skin.min_float, skin.max_float),
+        ("lowest_float", mid_low, mid_high),
+        ("highest_float", mid_low, mid_high),
+    )
+    for sort_by, query_min_float, query_max_float in queries:
+        breaker.check_budget(csfloat)
+        if breaker.tripped:
+            log.error("circuit breaker tripped (%s) -- aborting rest of %r's queries", breaker.reason, skin.name)
+            break
         attempted += 1
         listings = await _fetch_with_retry(
             csfloat,
             skin_name=skin.name,
             sort_by=sort_by,
+            breaker=breaker,
             paint_index=skin.paint_index,
-            min_float=skin.min_float,
-            max_float=skin.max_float,
+            min_float=query_min_float,
+            max_float=query_max_float,
             category=NORMAL_CATEGORY,
             limit=50,
         )
@@ -234,13 +329,21 @@ async def run() -> None:
         total_fail = 0
         total_attempted = 0
         missing: list[str] = []
+        breaker = _CircuitBreaker()
 
         for name in TRACKED_SKINS:
+            breaker.check_budget(csfloat)
+            if breaker.tripped:
+                log.error(
+                    "circuit breaker tripped (%s) -- stopping sweep early, "
+                    "remaining tracked skins skipped this run", breaker.reason,
+                )
+                break
             skin = catalog.get(name)
             if skin is None:
                 missing.append(name)
                 continue
-            new_count, dup_count, fail_count, attempted = await sweep_skin(csfloat, store, skin)
+            new_count, dup_count, fail_count, attempted = await sweep_skin(csfloat, store, skin, breaker)
             total_new += new_count
             total_dup += dup_count
             total_fail += fail_count

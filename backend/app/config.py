@@ -19,6 +19,7 @@ class Settings(BaseSettings):
 
     pricing_db_path: str = ".cache/pricing.db"
     collector_pause_flag_path: str = ".cache/collector.disabled"
+    eval_history_path: str = ".cache/eval_history.csv"
 
     @property
     def cors_origin_list(self) -> list[str]:

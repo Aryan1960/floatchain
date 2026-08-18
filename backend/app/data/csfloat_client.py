@@ -32,6 +32,14 @@ class CsFloatClient:
         self._lock = asyncio.Lock()
         self._last_request_at: float = 0.0
         self._cache: dict[str, tuple[float, list[dict]]] = {}
+        # CSFloat sends standard X-RateLimit-* headers on every /listings
+        # response (confirmed live: limit=200, a remaining count, and a reset
+        # Unix timestamp -- observed as a fixed window rather than per-call
+        # throttling). Tracking the latest values lets callers throttle
+        # themselves proactively before actually exhausting the budget,
+        # instead of only reacting after a 429 already happened.
+        self.last_rate_limit_remaining: int | None = None
+        self.last_rate_limit_reset: int | None = None
 
     async def aclose(self) -> None:
         await self._client.aclose()
@@ -77,6 +85,7 @@ class CsFloatClient:
 
         await self._respect_rate_limit()
         response = await self._client.get("/listings", params=params)
+        self._record_rate_limit_headers(response)
         response.raise_for_status()
         body = response.json()
         # Live responses are paginated envelopes ({"data": [...], "cursor": ...}),
@@ -125,6 +134,14 @@ class CsFloatClient:
         if price_cents is None:
             return None
         return price_cents / 100
+
+    def _record_rate_limit_headers(self, response: httpx.Response) -> None:
+        remaining = response.headers.get("X-RateLimit-Remaining")
+        reset = response.headers.get("X-RateLimit-Reset")
+        if remaining is not None and remaining.isdigit():
+            self.last_rate_limit_remaining = int(remaining)
+        if reset is not None and reset.isdigit():
+            self.last_rate_limit_reset = int(reset)
 
     async def _respect_rate_limit(self) -> None:
         async with self._lock:
