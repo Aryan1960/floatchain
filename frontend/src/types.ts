@@ -50,3 +50,44 @@ export interface ContractResult {
 export interface ApiError {
   detail: string;
 }
+
+export interface PricingStatusSkin {
+  skin_name: string;
+  stattrak: boolean;
+  sample_count: number;
+  first_seen_at: string;
+  last_seen_at: string;
+  min_float: number | null;
+  max_float: number | null;
+}
+
+export interface PricingStatus {
+  collector_paused: boolean;
+  real_rows: number;
+  synthetic_rows: number;
+  by_skin: PricingStatusSkin[];
+}
+
+export interface PricePrediction {
+  skin_name: string;
+  stattrak: boolean;
+  float_value: number;
+  model_price: number | null;
+  model_type: "xgboost" | "knn" | "insufficient_data";
+  sample_count: number;
+  outliers_removed: number;
+  csfloat_predicted_price: number | null;
+  csfloat_reference_float_distance: number | null;
+}
+
+export interface EvalHistoryRow {
+  timestamp: string;
+  real_rows_total: number;
+  evaluated_skins: number;
+  beat_baseline: number;
+  beat_csfloat: number;
+  csfloat_comparable: number;
+  avg_our_mae: number | null;
+  avg_baseline_mae: number | null;
+  avg_csfloat_mae: number | null;
+}

@@ -1,4 +1,12 @@
-import type { ApiError, ContractRequest, ContractResult, SkinCatalogEntry } from "../types";
+import type {
+  ApiError,
+  ContractRequest,
+  ContractResult,
+  EvalHistoryRow,
+  PricePrediction,
+  PricingStatus,
+  SkinCatalogEntry,
+} from "../types";
 
 async function handle<T>(response: Response): Promise<T> {
   if (!response.ok) {
@@ -38,4 +46,28 @@ export async function getSkinPrice(
   if (!response.ok) return null;
   const body = (await response.json()) as { price: number | null };
   return body.price;
+}
+
+export async function getPricingStatus(): Promise<PricingStatus> {
+  const response = await fetch("/api/pricing/status");
+  return handle<PricingStatus>(response);
+}
+
+export async function getPricePrediction(
+  skinName: string,
+  rawFloat: number,
+  stattrak: boolean
+): Promise<PricePrediction> {
+  const params = new URLSearchParams({
+    skin_name: skinName,
+    raw_float: String(rawFloat),
+    stattrak: String(stattrak),
+  });
+  const response = await fetch(`/api/pricing/predict?${params}`);
+  return handle<PricePrediction>(response);
+}
+
+export async function getEvalHistory(): Promise<EvalHistoryRow[]> {
+  const response = await fetch("/api/pricing/eval-history");
+  return handle<EvalHistoryRow[]>(response);
 }

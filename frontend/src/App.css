@@ -1,23 +1,72 @@
 .app {
   max-width: 1100px;
   margin: 0 auto;
-  padding: 2rem 1.5rem 4rem;
+  padding: 2.5rem 1.5rem 4rem;
+}
+
+header {
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.header-eyebrow {
+  font-family: var(--font-body);
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--series-1-strong);
+  margin: 0 0 0.4rem;
 }
 
 header h1 {
   margin: 0;
-  font-size: 1.6rem;
+  font-size: 1.9rem;
+  color: var(--text-primary);
 }
 
 .subtitle {
   color: var(--text-secondary);
-  margin-top: 0.25rem;
+  margin-top: 0.3rem;
+  font-size: 0.92rem;
+}
+
+/* ---- tab navigation ---- */
+
+.tab-bar {
+  display: flex;
+  gap: 0.25rem;
+  margin-top: 1.5rem;
+  margin-bottom: -1px;
+}
+
+.tab {
+  padding: 0.55rem 1rem;
+  border: none;
+  background: none;
+  color: var(--text-muted);
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+}
+
+.tab:hover {
+  color: var(--text-secondary);
+}
+
+.tab.active {
+  color: var(--series-1-strong);
+  border-bottom-color: var(--series-1);
 }
 
 .contract-form {
   background: var(--surface-1);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: 6px;
   padding: 1.25rem;
   margin-top: 1.5rem;
 }
@@ -32,9 +81,12 @@ header h1 {
 .form-controls label {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
-  font-size: 0.85rem;
-  color: var(--text-secondary);
+  gap: 0.3rem;
+  font-family: var(--font-body);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
 }
 
 .form-controls input[type="checkbox"] {
@@ -45,22 +97,25 @@ header h1 {
   width: 100%;
   border-collapse: collapse;
   margin-top: 0.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
 }
 
 .outcomes-table th,
 .outcomes-table td {
   text-align: left;
-  padding: 0.4rem 0.5rem;
+  padding: 0.5rem 0.6rem;
   border-bottom: 1px solid var(--gridline);
   font-variant-numeric: tabular-nums;
 }
 
 .outcomes-table th {
   color: var(--text-muted);
-  font-weight: 500;
-  font-size: 0.8rem;
+  font-family: var(--font-mono);
+  font-weight: 400;
+  font-size: 0.68rem;
   text-transform: uppercase;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.05em;
 }
 
 /* ---- contract input rows ---- */
@@ -72,10 +127,11 @@ header h1 {
   padding: 0 0.25rem;
   margin-top: 1rem;
   color: var(--text-muted);
-  font-weight: 500;
-  font-size: 0.75rem;
+  font-family: var(--font-mono);
+  font-weight: 400;
+  font-size: 0.68rem;
   text-transform: uppercase;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.05em;
 }
 
 .contract-rows {
@@ -91,7 +147,7 @@ header h1 {
   gap: 0.75rem;
   align-items: start;
   padding: 0.5rem 0.25rem;
-  border-radius: 8px;
+  border-radius: 4px;
 }
 
 .contract-row:hover {
@@ -101,7 +157,8 @@ header h1 {
 .row-index {
   padding-top: 0.35rem;
   color: var(--text-muted);
-  font-size: 0.8rem;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
   font-variant-numeric: tabular-nums;
 }
 
@@ -114,9 +171,9 @@ header h1 {
 
 .row-field input {
   width: 100%;
-  padding: 0.3rem 0.4rem;
+  padding: 0.35rem 0.5rem;
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: 4px;
   background: var(--surface-1);
   color: var(--text-primary);
 }
@@ -136,7 +193,7 @@ header h1 {
   flex: 1;
   padding: 0.4rem 0.5rem;
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: 4px;
   background: var(--surface-1);
   color: var(--text-secondary);
   font-size: 0.78rem;
@@ -156,7 +213,7 @@ header h1 {
 
 .row-field-copy button:not(:disabled):hover {
   border-color: var(--series-1);
-  color: var(--series-1);
+  color: var(--series-1-strong);
 }
 
 /* ---- float slider + manual entry ---- */
@@ -181,6 +238,14 @@ header h1 {
 .float-input-row input[type="number"] {
   flex: 1;
   min-width: 0;
+  font-family: var(--font-mono);
+}
+
+/* The placeholder is an instruction in words ("pick a skin first"), not a
+   number -- give it back the body font even though real typed values here
+   stay mono. */
+.float-input-row input[type="number"]::placeholder {
+  font-family: var(--font-body);
 }
 
 .float-input-row input[type="number"].invalid {
@@ -199,12 +264,13 @@ header h1 {
 
 .wear-badge {
   flex-shrink: 0;
-  font-size: 0.7rem;
+  font-family: var(--font-body);
+  font-size: 0.68rem;
   color: var(--text-secondary);
   background: var(--surface-2);
   border: 1px solid var(--border);
   border-radius: 999px;
-  padding: 0.15rem 0.5rem;
+  padding: 0.15rem 0.55rem;
   white-space: nowrap;
 }
 
@@ -219,7 +285,7 @@ header h1 {
   background: none;
   border: none;
   padding: 0;
-  color: var(--series-1);
+  color: var(--series-1-strong);
   cursor: pointer;
   text-align: left;
   width: fit-content;
@@ -235,9 +301,9 @@ header h1 {
 
 .autocomplete input {
   width: 100%;
-  padding: 0.3rem 0.4rem;
+  padding: 0.35rem 0.5rem;
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: 4px;
   background: var(--surface-1);
   color: var(--text-primary);
 }
@@ -248,19 +314,19 @@ header h1 {
   top: 100%;
   left: 0;
   right: 0;
-  margin: 2px 0 0;
+  margin: 4px 0 0;
   padding: 0.25rem 0;
   list-style: none;
   background: var(--surface-1);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 6px;
   max-height: 220px;
   overflow-y: auto;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 8px 24px rgba(20, 26, 34, 0.16);
 }
 
 .autocomplete-list li {
-  padding: 0.4rem 0.6rem;
+  padding: 0.45rem 0.65rem;
   cursor: pointer;
   display: flex;
   justify-content: space-between;
@@ -282,8 +348,9 @@ header h1 {
 }
 
 .float-range {
+  font-family: var(--font-mono);
   color: var(--text-muted);
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   white-space: nowrap;
 }
 
@@ -305,14 +372,16 @@ header h1 {
 }
 
 .running-total .label {
-  font-size: 0.75rem;
+  font-family: var(--font-body);
+  font-size: 0.7rem;
   color: var(--text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.05em;
 }
 
 .running-total .value {
-  font-size: 1.15rem;
+  font-family: var(--font-mono);
+  font-size: 1.2rem;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
@@ -329,12 +398,14 @@ header h1 {
 }
 
 .contract-form button[type="submit"] {
-  padding: 0.55rem 1.25rem;
+  padding: 0.6rem 1.4rem;
   border: none;
-  border-radius: 8px;
+  border-radius: 5px;
   background: var(--series-1);
-  color: white;
-  font-weight: 600;
+  color: #1b1204;
+  font-family: var(--font-body);
+  font-weight: 700;
+  letter-spacing: 0;
   cursor: pointer;
 }
 
@@ -344,12 +415,13 @@ header h1 {
 }
 
 .contract-form button.secondary {
-  padding: 0.55rem 1.25rem;
+  padding: 0.6rem 1.4rem;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 5px;
   background: var(--surface-1);
   color: var(--text-secondary);
-  font-weight: 600;
+  font-family: var(--font-body);
+  font-weight: 700;
   cursor: pointer;
 }
 
@@ -361,57 +433,131 @@ header h1 {
 .error-banner {
   margin-top: 1rem;
   padding: 0.75rem 1rem;
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--status-critical) 12%, var(--surface-1));
+  border-radius: 5px;
+  background: var(--status-critical-soft);
   border: 1px solid var(--status-critical);
   color: var(--text-primary);
+  font-size: 0.9rem;
 }
 
 .results-panel {
   margin-top: 2rem;
 }
 
-.summary-cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 0.75rem;
-}
+/* ---- the one number a screen wants noticed first gets a real readout,
+   not a box in a grid -- everything else is a divided ledger strip
+   (label/value pairs separated by rules, no borders around each one).
+   That's the hierarchy: one instrument-panel-style number, then plain
+   supporting data beside it -- not four equal boxes competing for eyes. */
 
-.card {
-  background: var(--surface-1);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 0.9rem 1rem;
+/* No box, no tint, no fill -- just size and color doing the work. A
+   colored callout badge is its own kind of cliche; a plain oversized
+   number in the page flow reads calmer and more considered. */
+
+.hero-readout {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 0.15rem;
+  margin-top: 1.5rem;
 }
 
-.card .label {
+.hero-readout__label {
+  font-family: var(--font-body);
   font-size: 0.75rem;
-  color: var(--text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
 }
 
-.card .value {
-  font-size: 1.4rem;
-  font-weight: 600;
+.hero-readout__value {
+  font-family: var(--font-mono);
+  font-size: 2.75rem;
+  line-height: 1;
   font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
 }
 
-.card.positive .value {
+.hero-readout.positive .hero-readout__value {
   color: var(--status-good);
 }
 
-.card.negative .value {
+.hero-readout.negative .hero-readout__value {
   color: var(--status-critical);
+}
+
+.hero-readout__note {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-top: 0.1rem;
+}
+
+.stat-strip {
+  display: flex;
+  flex-wrap: wrap;
+  margin-top: 1.5rem;
+  padding-top: 1.1rem;
+  border-top: 1px solid var(--gridline);
+}
+
+.stat-strip__item {
+  flex: 1 1 160px;
+  padding: 0 1.4rem;
+  border-left: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.stat-strip__item:first-child {
+  border-left: none;
+  padding-left: 0;
+}
+
+.stat-strip__item .label {
+  font-family: var(--font-body);
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.stat-strip__item .value {
+  font-family: var(--font-mono);
+  font-size: 1.35rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
+
+.stat-strip__item .value--good {
+  color: var(--status-good);
+}
+
+.stat-strip__item .value--critical {
+  color: var(--status-critical);
+}
+
+@media (max-width: 640px) {
+  .stat-strip {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .stat-strip__item {
+    border-left: none;
+    border-top: 1px solid var(--border);
+    padding: 0.6rem 0 0;
+  }
+
+  .stat-strip__item:first-child {
+    border-top: none;
+    padding-top: 0;
+  }
 }
 
 .monte-carlo-bar {
   display: flex;
   height: 20px;
-  border-radius: 6px;
+  border-radius: 4px;
   overflow: hidden;
   gap: 2px;
   background: var(--gridline);
@@ -440,6 +586,7 @@ header h1 {
   color: var(--text-secondary);
   display: flex;
   align-items: center;
+  font-variant-numeric: tabular-nums;
 }
 
 .dot {
@@ -461,4 +608,170 @@ header h1 {
 
 .dot.loss {
   background: var(--status-critical);
+}
+
+/* ---- pricing insights ---- */
+
+.pricing-insights {
+  margin-top: 1.5rem;
+}
+
+.pricing-insights h3 {
+  margin-top: 2.25rem;
+  margin-bottom: 0.3rem;
+  font-size: 1.15rem;
+}
+
+.eval-history-table {
+  margin-top: 1rem;
+}
+
+.eval-trend-chart {
+  width: 100%;
+  height: auto;
+  margin-top: 0.75rem;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.5rem 0;
+}
+
+.chart-gridline {
+  stroke: var(--gridline);
+  stroke-width: 1;
+}
+
+.chart-axis-label {
+  font-size: 10px;
+  fill: var(--text-muted);
+}
+
+.chart-value-label {
+  font-size: 11px;
+  font-weight: 600;
+  fill: var(--series-1-strong);
+}
+
+.chart-line {
+  stroke: var(--series-1);
+  stroke-width: 2;
+}
+
+.chart-dot {
+  fill: var(--series-1);
+}
+
+.predictor-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-top: 0.75rem;
+  padding: 1.1rem;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.predictor-form .autocomplete {
+  flex: 1 1 260px;
+  min-width: 220px;
+}
+
+.predictor-form .float-input {
+  flex: 1 1 260px;
+  min-width: 220px;
+}
+
+.stattrak-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  padding-top: 0.4rem;
+  white-space: nowrap;
+}
+
+.skin-select {
+  flex: 1 1 260px;
+  min-width: 220px;
+  padding: 0.45rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface-1);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+}
+
+.predict-button {
+  padding: 0.6rem 1.4rem;
+  border: none;
+  border-radius: 5px;
+  background: var(--series-1);
+  color: #1b1204;
+  font-family: var(--font-body);
+  font-weight: 700;
+  letter-spacing: 0;
+  cursor: pointer;
+  align-self: flex-start;
+  margin-top: 0.1rem;
+}
+
+.predict-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.prediction-result {
+  margin-top: 1rem;
+}
+
+.prediction-compare {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.75rem;
+}
+
+.prediction-side {
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 1rem 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.prediction-side:first-child {
+  border-color: var(--series-1);
+  border-width: 1.5px;
+  background: var(--series-1-soft);
+}
+
+.prediction-side .label {
+  font-family: var(--font-body);
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.prediction-side .value {
+  font-family: var(--font-mono);
+  font-size: 1.6rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.prediction-note {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.prediction-caveat {
+  margin-top: 0.75rem;
+  font-size: 0.85rem;
+  color: var(--status-warning);
 }

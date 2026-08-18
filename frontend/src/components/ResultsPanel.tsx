@@ -14,20 +14,24 @@ export function ResultsPanel({ result }: { result: ContractResult }) {
 
   return (
     <div className="results-panel">
-      <div className="summary-cards">
-        <div className="card">
+      <div className={`hero-readout ${profitable ? "positive" : "negative"}`}>
+        <span className="hero-readout__label">Profitability</span>
+        <span className="hero-readout__value">{result.profitability_pct.toFixed(1)}%</span>
+        <span className="hero-readout__note">
+          {profitable ? "Expected value clears total input cost" : "Expected value falls short of total input cost"}
+        </span>
+      </div>
+
+      <div className="stat-strip">
+        <div className="stat-strip__item">
           <span className="label">Total input cost</span>
           <span className="value">{money(result.total_input_cost)}</span>
         </div>
-        <div className="card">
+        <div className="stat-strip__item">
           <span className="label">Expected value</span>
           <span className="value">{money(result.expected_value)}</span>
         </div>
-        <div className={`card ${profitable ? "positive" : "negative"}`}>
-          <span className="label">Profitability</span>
-          <span className="value">{result.profitability_pct.toFixed(1)}%</span>
-        </div>
-        <div className="card">
+        <div className="stat-strip__item">
           <span className="label">Avg adjusted float</span>
           <span className="value">{result.avg_adjusted_float.toFixed(5)}</span>
         </div>

@@ -1,32 +1,80 @@
+@font-face {
+  font-family: "Fragment Mono";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/fragment-mono-400.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Fraunces Variable";
+  font-style: normal;
+  font-weight: 400 800;
+  font-display: swap;
+  src: url("/fonts/fraunces-var.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Manrope Variable";
+  font-style: normal;
+  font-weight: 400 800;
+  font-display: swap;
+  src: url("/fonts/manrope-var.woff2") format("woff2");
+}
+
 :root {
   color-scheme: light;
-  --surface-1: #fcfcfb;
-  --surface-2: #f9f9f7;
-  --text-primary: #0b0b0b;
-  --text-secondary: #52514e;
-  --text-muted: #898781;
-  --border: rgba(11, 11, 11, 0.1);
-  --gridline: #e1e0d9;
-  --series-1: #2a78d6;
-  --status-good: #0ca30c;
-  --status-warning: #fab219;
-  --status-critical: #d03b3b;
+
+  --surface-1: #ffffff;
+  --surface-2: #e9ecf0;
+  --text-primary: #1b2430;
+  --text-secondary: #55606e;
+  --text-muted: #8291a1;
+  --border: #d7dce2;
+  --border-strong: #b7c0c9;
+  --gridline: #e3e7eb;
+
+  --series-1: #a9781f;
+  --series-1-strong: #8c6417;
+  --series-1-soft: #f1e4c9;
+
+  --status-good: #2e7d53;
+  --status-good-soft: #dceee3;
+  --status-warning: #b5651d;
+  --status-critical: #b23a3a;
+  --status-critical-soft: #f6dede;
+
+  /* Three roles, each earning its place rather than one face doing
+     everything: Fraunces carries the handful of big headline moments,
+     Manrope carries everything you actually read (labels, buttons, body
+     copy) since a monospace fights readability at that job, and Fragment
+     Mono is reserved for what it's actually good at -- real numbers, where
+     fixed-width alignment is a genuine feature, not decoration. */
+  --font-display: "Fraunces Variable", ui-serif, Georgia, serif;
+  --font-body: "Manrope Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Fragment Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
     color-scheme: dark;
-    --surface-1: #1a1a19;
-    --surface-2: #0d0d0d;
-    --text-primary: #ffffff;
-    --text-secondary: #c3c2b7;
-    --text-muted: #898781;
-    --border: rgba(255, 255, 255, 0.1);
-    --gridline: #2c2c2a;
-    --series-1: #3987e5;
-    --status-good: #0ca30c;
-    --status-warning: #fab219;
-    --status-critical: #d03b3b;
+
+    --surface-1: #161d26;
+    --surface-2: #1e2732;
+    --text-primary: #e7ebef;
+    --text-secondary: #92a2b1;
+    --text-muted: #64727f;
+    --border: #2a3540;
+    --border-strong: #3b4753;
+    --gridline: #2a3540;
+
+    --series-1: #e0a83e;
+    --series-1-strong: #f0be5c;
+    --series-1-soft: #3a2e17;
+
+    --status-good: #6fbf97;
+    --status-good-soft: #1c3327;
+    --status-warning: #e0a83e;
+    --status-critical: #e1746b;
+    --status-critical-soft: #3a2020;
   }
 }
 
@@ -36,9 +84,25 @@
 
 body {
   margin: 0;
-  background: var(--surface-2);
+  background: #f3f5f7;
   color: var(--text-primary);
-  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-family: var(--font-body);
+}
+
+@media (prefers-color-scheme: dark) {
+  body {
+    background: #10151c;
+  }
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-optical-sizing: auto;
+  letter-spacing: 0;
 }
 
 input,
