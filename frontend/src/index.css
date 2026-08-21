@@ -35,6 +35,11 @@
   --series-1: #a9781f;
   --series-1-strong: #8c6417;
   --series-1-soft: #f1e4c9;
+  --series-2: #2a78d6;
+  --series-2-strong: #1f5da8;
+  --series-2-soft: #dbe9f9;
+  --series-3: #1baf7a;
+  --series-3-strong: #128058;
 
   --status-good: #2e7d53;
   --status-good-soft: #dceee3;
@@ -69,6 +74,11 @@
     --series-1: #e0a83e;
     --series-1-strong: #f0be5c;
     --series-1-soft: #3a2e17;
+    --series-2: #3987e5;
+    --series-2-strong: #6ba8ef;
+    --series-2-soft: #16283e;
+    --series-3: #199e70;
+    --series-3-strong: #4dc79b;
 
     --status-good: #6fbf97;
     --status-good-soft: #1c3327;

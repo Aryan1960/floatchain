@@ -2,6 +2,7 @@ import type {
   ApiError,
   ContractRequest,
   ContractResult,
+  CurveData,
   EvalHistoryRow,
   PricePrediction,
   PricingStatus,
@@ -70,4 +71,10 @@ export async function getPricePrediction(
 export async function getEvalHistory(): Promise<EvalHistoryRow[]> {
   const response = await fetch("/api/pricing/eval-history");
   return handle<EvalHistoryRow[]>(response);
+}
+
+export async function getCurveData(skinName: string, stattrak: boolean): Promise<CurveData> {
+  const params = new URLSearchParams({ skin_name: skinName, stattrak: String(stattrak) });
+  const response = await fetch(`/api/pricing/curve?${params}`);
+  return handle<CurveData>(response);
 }

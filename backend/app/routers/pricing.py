@@ -51,6 +51,43 @@ async def predict(
     }
 
 
+@router.get("/curve")
+async def curve(
+    skin_name: str,
+    stattrak: bool = False,
+    catalog: CsgoCatalog = Depends(get_catalog),
+    store: PricingStore = Depends(get_pricing_store),
+):
+    """Real listing points plus our model's fitted curve, for a chart --
+    the same fit predict_price() would produce, just laid out across the
+    whole float range instead of collapsed into one number."""
+    skin = catalog.get(skin_name)
+    if skin is None:
+        raise HTTPException(400, f"Unknown skin: {skin_name!r}")
+
+    result = service.curve_data(store, skin_name, stattrak)
+    return {
+        "skin_name": result.skin_name,
+        "stattrak": result.stattrak,
+        "model_type": result.model_type,
+        "sample_count": result.sample_count,
+        "outliers_removed": result.outliers_removed,
+        "points": [
+            {
+                "float_value": p.float_value,
+                "price": _cents_to_dollars(p.price_cents),
+                "csfloat_predicted_price": _cents_to_dollars(p.csfloat_predicted_price_cents),
+                "is_outlier": p.is_outlier,
+            }
+            for p in result.points
+        ],
+        "curve": [
+            {"float_value": c.float_value, "price": _cents_to_dollars(c.price_cents)}
+            for c in result.curve
+        ],
+    }
+
+
 @router.get("/anomalies")
 async def anomalies(
     skin_name: str,

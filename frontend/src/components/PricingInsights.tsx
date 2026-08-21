@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { getEvalHistory, getPricePrediction, getPricingStatus } from "../api/client";
-import type { EvalHistoryRow, PricePrediction, PricingStatus, PricingStatusSkin } from "../types";
+import { getCurveData, getEvalHistory, getPricePrediction, getPricingStatus } from "../api/client";
+import type { CurveData, EvalHistoryRow, PricePrediction, PricingStatus, PricingStatusSkin } from "../types";
+import { CurveChart } from "./CurveChart";
 import { EvalTrendChart } from "./EvalTrendChart";
 import { FloatInput } from "./FloatInput";
 
@@ -20,6 +21,10 @@ export function PricingInsights() {
   const [predicting, setPredicting] = useState(false);
   const [predictError, setPredictError] = useState<string | null>(null);
 
+  const [curve, setCurve] = useState<CurveData | null>(null);
+  const [curveLoading, setCurveLoading] = useState(false);
+  const [curveError, setCurveError] = useState<string | null>(null);
+
   // Only skins we've actually collected real data for -- picking anything
   // outside this list would always come back "insufficient_data", so there's
   // no point offering the full 2000+-skin catalog here like the calculator does.
@@ -38,6 +43,19 @@ export function PricingInsights() {
   }, []);
 
   const latest = history.length > 0 ? history[history.length - 1] : null;
+
+  useEffect(() => {
+    if (!selectedSkin) {
+      setCurve(null);
+      return;
+    }
+    setCurveLoading(true);
+    setCurveError(null);
+    getCurveData(selectedSkin.skin_name, stattrak)
+      .then(setCurve)
+      .catch((err) => setCurveError(err instanceof Error ? err.message : "Failed to load curve"))
+      .finally(() => setCurveLoading(false));
+  }, [selectedSkin, stattrak]);
 
   async function handlePredict() {
     if (!selectedSkin || floatValue === "") return;
@@ -179,6 +197,28 @@ export function PricingInsights() {
           {predicting ? "Predicting..." : "Get prediction"}
         </button>
       </div>
+
+      {selectedSkin && (
+        <>
+          <h3>Price curve</h3>
+          <p className="subtitle">
+            Every real listing collected for {selectedSkin.skin_name}, plotted by float, with our model's fitted
+            curve and CSFloat's own predicted price overlaid — the actual relationship the model learns, not just
+            a single prediction.
+          </p>
+          {curveLoading && <p className="subtitle">Loading curve…</p>}
+          {curveError && <div className="error-banner">{curveError}</div>}
+          {curve && (
+            <CurveChart
+              data={curve}
+              onSelectFloat={(f) => setFloatValue(f.toFixed(6))}
+              selectedFloat={floatValue !== "" && !Number.isNaN(Number(floatValue)) ? Number(floatValue) : null}
+              skinMinFloat={selectedSkin.min_float}
+              skinMaxFloat={selectedSkin.max_float}
+            />
+          )}
+        </>
+      )}
 
       {predictError && <div className="error-banner">{predictError}</div>}
 

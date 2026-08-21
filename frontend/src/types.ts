@@ -80,6 +80,28 @@ export interface PricePrediction {
   csfloat_reference_float_distance: number | null;
 }
 
+export interface CurvePoint {
+  float_value: number;
+  price: number;
+  csfloat_predicted_price: number | null;
+  is_outlier: boolean;
+}
+
+export interface CurveSample {
+  float_value: number;
+  price: number;
+}
+
+export interface CurveData {
+  skin_name: string;
+  stattrak: boolean;
+  model_type: "xgboost" | "knn" | "insufficient_data";
+  sample_count: number;
+  outliers_removed: number;
+  points: CurvePoint[];
+  curve: CurveSample[];
+}
+
 export interface EvalHistoryRow {
   timestamp: string;
   real_rows_total: number;
