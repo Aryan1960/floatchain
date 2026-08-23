@@ -33,7 +33,7 @@ os.chdir(BACKEND_DIR)  # so relative paths (.env, .cache/...) resolve the
 sys.path.insert(0, str(BACKEND_DIR))
 
 from app.config import get_settings  # noqa: E402
-from app.data.csfloat_client import CsFloatClient  # noqa: E402
+from app.data.csfloat_client import CsFloatClient, is_high_value_stickered  # noqa: E402
 from app.data.csgo_catalog import CsgoCatalog  # noqa: E402
 from app.data.pricing_store import PricingStore  # noqa: E402
 from app.data.tracked_skins import TRACKED_SKINS  # noqa: E402
@@ -218,11 +218,12 @@ async def _fetch_with_retry(
 
 async def sweep_skin(
     csfloat: CsFloatClient, store: PricingStore, skin: SkinCatalogEntry, breaker: _CircuitBreaker
-) -> tuple[int, int, int, int, int]:
-    """Returns (new_count, duplicate_count, failed_count, attempted_count, mismatched_count)."""
+) -> tuple[int, int, int, int, int, int]:
+    """Returns (new_count, duplicate_count, failed_count, attempted_count,
+    mismatched_count, stickered_count)."""
     if not skin.paint_index:
         log.warning("skipping %r: no paint_index in catalog data", skin.name)
-        return 0, 0, 0, 0, 0
+        return 0, 0, 0, 0, 0, 0
 
     seen_at = datetime.now(timezone.utc).isoformat()
     new_count = 0
@@ -230,6 +231,7 @@ async def sweep_skin(
     fail_count = 0
     attempted = 0
     mismatched_count = 0
+    stickered_count = 0
     # paint_index isn't always unique to one weapon -- "cross-weapon" finishes
     # like Case Hardened, Blaze, and Fade reuse the same paint_index across
     # AK-47s, knives, pistols, etc. Confirmed directly against the live DB:
@@ -291,6 +293,21 @@ async def sweep_skin(
             if not hash_name.startswith(expected_weapon_prefix):
                 mismatched_count += 1
                 continue
+            # A sticker's collector value has nothing to do with the base
+            # skin's float, but its price rides along on the same listing --
+            # confirmed live: a Redline with 4x Katowice 2014 stickers asked
+            # $47,500 against a ~$80 bare median. A trade-up output is always
+            # a fresh, undecorated item (see naming.py), so a decorated
+            # listing was never a fair training example for this skin's
+            # float-vs-price curve in the first place. Only high-value
+            # sticker sets get skipped though (see csfloat_client.py's
+            # STICKER_VALUE_THRESHOLD_CENTS) -- confirmed live that a bare
+            # "any sticker at all" check throws out 70-90% of real listings
+            # for popular skins, since most carry at least one cheap,
+            # harmless one.
+            if is_high_value_stickered(item):
+                stickered_count += 1
+                continue
             reference = listing.get("reference") or {}
             is_new = store.upsert_real_snapshot(
                 listing_id=str(listing_id),
@@ -309,8 +326,10 @@ async def sweep_skin(
 
     if mismatched_count:
         log.info("%r: skipped %d listings for a different weapon sharing this paint_index", skin.name, mismatched_count)
+    if stickered_count:
+        log.info("%r: skipped %d stickered listings", skin.name, stickered_count)
 
-    return new_count, dup_count, fail_count, attempted, mismatched_count
+    return new_count, dup_count, fail_count, attempted, mismatched_count, stickered_count
 
 
 async def run() -> None:
@@ -345,6 +364,7 @@ async def run() -> None:
         total_fail = 0
         total_attempted = 0
         total_mismatched = 0
+        total_stickered = 0
         missing: list[str] = []
         breaker = _CircuitBreaker()
 
@@ -360,12 +380,13 @@ async def run() -> None:
             if skin is None:
                 missing.append(name)
                 continue
-            new_count, dup_count, fail_count, attempted, mismatched_count = await sweep_skin(csfloat, store, skin, breaker)
+            new_count, dup_count, fail_count, attempted, mismatched_count, stickered_count = await sweep_skin(csfloat, store, skin, breaker)
             total_new += new_count
             total_dup += dup_count
             total_fail += fail_count
             total_attempted += attempted
             total_mismatched += mismatched_count
+            total_stickered += stickered_count
 
         if missing:
             log.warning("tracked skins not found in catalog: %s", missing)
@@ -373,12 +394,13 @@ async def run() -> None:
         real_total, synthetic_total = store.total_counts()
         log.info(
             "sweep done: +%d new, %d duplicate, %d/%d fetches failed, %d skipped (wrong weapon), "
-            "%d real rows total (%d synthetic, untouched)",
+            "%d skipped (stickered), %d real rows total (%d synthetic, untouched)",
             total_new,
             total_dup,
             total_fail,
             total_attempted,
             total_mismatched,
+            total_stickered,
             real_total,
             synthetic_total,
         )
