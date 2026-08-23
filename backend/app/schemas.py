@@ -17,3 +17,10 @@ class ContractInputSchema(BaseModel):
 class ContractRequest(BaseModel):
     inputs: list[ContractInputSchema] = Field(min_length=5, max_length=10)
     monte_carlo_runs: int = Field(default=1000, ge=100, le=20000)
+
+
+class ChainRequest(BaseModel):
+    inputs: list[ContractInputSchema] = Field(min_length=5, max_length=10)
+    beam_width: int = Field(default=3, ge=1, le=5)
+    max_depth: int = Field(default=2, ge=1, le=3)
+    materiality_threshold_pct: float = Field(default=5.0, ge=0.0, le=100.0)

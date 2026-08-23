@@ -19,9 +19,23 @@ import sqlite3
 from contextlib import closing
 from pathlib import Path
 
+# How close a stored real listing's float needs to be to trust it as a
+# stand-in for a live price lookup -- tight enough to be a meaningful
+# estimate, loose enough to actually hit given real data isn't uniformly
+# spread across a skin's whole float range. Lives here (not in a router)
+# since it's genuinely about how much the stored data should be trusted,
+# and more than one caller (the /api/skins/price endpoint, the chain-search
+# pricing oracle) needs the same threshold.
+LOCAL_PRICE_MAX_FLOAT_DISTANCE = 0.02
+
 
 class PricingStore:
     def __init__(self, db_path: str | Path):
+        # check_same_thread defaults to True and every method here assumes
+        # it: safe today because every caller (including the chain search's
+        # asyncio.gather fan-out) runs cooperatively on the single event-loop
+        # thread. Moving any of these calls behind run_in_executor/a thread
+        # pool would immediately need check_same_thread=False plus a lock.
         self._db_path = Path(db_path)
         self._db_path.parent.mkdir(parents=True, exist_ok=True)
         self._conn = sqlite3.connect(self._db_path)

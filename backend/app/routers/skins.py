@@ -4,19 +4,12 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from app.data.csfloat_client import CsFloatClient
 from app.data.csgo_catalog import CsgoCatalog
-from app.data.pricing_store import PricingStore
+from app.data.pricing_store import LOCAL_PRICE_MAX_FLOAT_DISTANCE, PricingStore
 from app.dependencies import get_catalog, get_csfloat, get_pricing_store
 from app.domain.naming import market_hash_name
 from app.domain.wear import wear_name
 
 router = APIRouter(prefix="/api/skins", tags=["skins"])
-
-# How close a stored real listing's float needs to be to trust it as a
-# "price paid" suggestion instead of making a live CSFloat call. Tight
-# enough to be a meaningful estimate, loose enough to actually hit given
-# real data isn't uniformly spread across a skin's whole float range (see
-# the build log's note on the collection gap between sampled extremes).
-LOCAL_PRICE_MAX_FLOAT_DISTANCE = 0.02
 
 
 @router.get("/search")

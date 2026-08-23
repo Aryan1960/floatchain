@@ -9,7 +9,7 @@ from app.config import get_settings
 from app.data.csfloat_client import CsFloatClient
 from app.data.csgo_catalog import CsgoCatalog
 from app.data.pricing_store import PricingStore
-from app.routers import contracts, pricing, skins
+from app.routers import chains, contracts, pricing, skins
 
 
 @asynccontextmanager
@@ -37,6 +37,7 @@ app.add_middleware(
 app.include_router(skins.router)
 app.include_router(contracts.router)
 app.include_router(pricing.router)
+app.include_router(chains.router)
 
 
 @app.get("/api/health")
