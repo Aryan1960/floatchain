@@ -274,6 +274,39 @@ header h1 {
   white-space: nowrap;
 }
 
+.wear-badge--good {
+  color: var(--status-good);
+  border-color: var(--status-good);
+}
+
+/* ---- deal radar ---- */
+
+.deal-radar__generated-at {
+  margin-top: -0.25rem;
+}
+
+.deal-radar__discount {
+  color: var(--status-good);
+  font-variant-numeric: tabular-nums;
+}
+
+.deal-radar-row {
+  cursor: pointer;
+}
+
+.deal-radar-row:hover {
+  background: var(--surface-2);
+}
+
+.deal-radar-row-expanded td {
+  background: var(--surface-1);
+  padding: 1rem 1.25rem;
+}
+
+.deal-radar-graph .curve-chart-wrap {
+  margin-top: 0.5rem;
+}
+
 /* ---- price paid + market hint ---- */
 
 .price-hint {
@@ -768,6 +801,34 @@ header h1 {
   stroke-linejoin: round;
 }
 
+.curve-highlight-marker {
+  pointer-events: none;
+}
+
+.curve-highlight-gap-line {
+  stroke: var(--status-good);
+  stroke-width: 1.5;
+  stroke-dasharray: 3 3;
+  opacity: 0.7;
+}
+
+.curve-highlight-dot {
+  fill: var(--status-good);
+  stroke: var(--surface-1);
+  stroke-width: 1.5;
+}
+
+.curve-highlight-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  fill: var(--status-good);
+  paint-order: stroke;
+  stroke: var(--surface-1);
+  stroke-width: 3px;
+  stroke-linejoin: round;
+}
+
 .curve-tooltip {
   position: absolute;
   transform: translate(-50%, -130%);
@@ -901,6 +962,10 @@ header h1 {
 
 .curve-legend__swatch--selected {
   background: var(--series-3);
+}
+
+.curve-legend__swatch--highlight {
+  background: var(--status-good);
 }
 
 .tree-diagram-wrap {

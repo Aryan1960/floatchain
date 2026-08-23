@@ -219,6 +219,27 @@ class PricingStore:
             for row in cur.fetchall()
         ]
 
+    def real_points_with_metadata(
+        self, skin_name: str, stattrak: bool
+    ) -> list[tuple[float, int, str, str]]:
+        """(float_value, price_cents, last_seen_at, listing_id) tuples --
+        unlike real_points_for_skin/real_points_with_benchmark, this carries
+        enough identity to tell which specific listing a point came from and
+        how fresh it is. Needed by app/pricing/deal_radar.py to filter out
+        stale rows and know what to spot-check; no existing caller needs
+        listing_id/last_seen_at, so this is additive, not a replacement."""
+        cur = self._conn.execute(
+            """
+            SELECT float_value, price_cents, last_seen_at, listing_id FROM real_snapshots
+            WHERE skin_name = ? AND stattrak = ? AND float_value IS NOT NULL
+            """,
+            (skin_name, int(stattrak)),
+        )
+        return [
+            (row["float_value"], row["price_cents"], row["last_seen_at"], row["listing_id"])
+            for row in cur.fetchall()
+        ]
+
     def synthetic_points_for_skin(
         self, skin_name: str, stattrak: bool
     ) -> list[tuple[float, int]]:

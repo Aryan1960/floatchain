@@ -31,6 +31,12 @@ interface Props {
    * back to the data's own extent if unavailable. */
   skinMinFloat?: number | null;
   skinMaxFloat?: number | null;
+  /** A specific real (float, price) pair to mark exactly where it actually
+   * sits -- unlike selectedFloat (which reads the curve's own price at that
+   * float), this plots the real transaction price itself, so a discounted
+   * listing shows up visibly below the curve rather than snapped onto it.
+   * Used by the deal radar to point at one flagged listing. */
+  highlightPoint?: { float: number; price: number } | null;
 }
 
 /** Real listings (float vs. price) for one skin, our model's fitted curve
@@ -50,7 +56,7 @@ interface Props {
  * component re-render at all. Everything mouse-independent (the step path,
  * point lists, wear bands) is memoized so toggling a checkbox or typing a
  * float doesn't rebuild them either. */
-export function CurveChart({ data, onSelectFloat, selectedFloat, skinMinFloat, skinMaxFloat }: Props) {
+export function CurveChart({ data, onSelectFloat, selectedFloat, skinMinFloat, skinMaxFloat, highlightPoint }: Props) {
   const svgRef = useRef<SVGSVGElement>(null);
   const crosshairGroupRef = useRef<SVGGElement>(null);
   const crosshairDotRef = useRef<SVGCircleElement>(null);
@@ -88,9 +94,10 @@ export function CurveChart({ data, onSelectFloat, selectedFloat, skinMinFloat, s
       ...data.points.filter((p) => !p.is_outlier).map((p) => p.price),
       ...data.points.map((p) => p.csfloat_predicted_price).filter((p): p is number => p !== null),
       ...data.curve.map((c) => c.price),
+      ...(highlightPoint ? [highlightPoint.price] : []),
     ];
     return (cleanPrices.length ? Math.max(...cleanPrices) : 1) * 1.08;
-  }, [data]);
+  }, [data, highlightPoint]);
 
   const plotW = WIDTH - PAD_LEFT - PAD_RIGHT;
   const plotH = HEIGHT - PAD_TOP - PAD_BOTTOM;
@@ -453,6 +460,28 @@ export function CurveChart({ data, onSelectFloat, selectedFloat, skinMinFloat, s
             </g>
           )}
 
+          {highlightPoint && (() => {
+            const hx = x(highlightPoint.float);
+            const hy = y(highlightPoint.price);
+            const curvePrice = curvePriceAt(highlightPoint.float);
+            return (
+              <g className="curve-highlight-marker">
+                {curvePrice !== null && (
+                  <line x1={hx} y1={hy} x2={hx} y2={y(curvePrice)} className="curve-highlight-gap-line" />
+                )}
+                <circle cx={hx} cy={hy} r={5} className="curve-highlight-dot" />
+                <text
+                  x={Math.min(Math.max(hx, PAD_LEFT + 55), WIDTH - PAD_RIGHT - 55)}
+                  y={Math.max(hy - 12, PAD_TOP + 10)}
+                  textAnchor="middle"
+                  className="curve-highlight-label"
+                >
+                  {highlightPoint.float.toFixed(4)} → ${highlightPoint.price.toFixed(2)}
+                </text>
+              </g>
+            );
+          })()}
+
           <text x={PAD_LEFT} y={HEIGHT - 22} className="chart-axis-label" textAnchor="start">
             {minFloat.toFixed(3)}
           </text>
@@ -500,7 +529,13 @@ export function CurveChart({ data, onSelectFloat, selectedFloat, skinMinFloat, s
         {selectedPrice !== null && (
           <span className="curve-legend__item">
             <span className="curve-legend__swatch curve-legend__swatch--selected" />
-            Float selected below
+            {highlightPoint ? "Curve's price at this float" : "Float selected below"}
+          </span>
+        )}
+        {highlightPoint && (
+          <span className="curve-legend__item">
+            <span className="curve-legend__swatch curve-legend__swatch--highlight" />
+            This listing&rsquo;s actual price — dashed line shows the gap to the curve
           </span>
         )}
       </div>

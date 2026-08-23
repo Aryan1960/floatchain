@@ -38,6 +38,7 @@ from app.data.csgo_catalog import CsgoCatalog  # noqa: E402
 from app.data.pricing_store import PricingStore  # noqa: E402
 from app.data.tracked_skins import TRACKED_SKINS  # noqa: E402
 from app.domain.models import SkinCatalogEntry  # noqa: E402
+from app.pricing.deal_radar import scan_for_deals, to_result_dict  # noqa: E402
 
 (BACKEND_DIR / ".cache").mkdir(parents=True, exist_ok=True)
 logging.basicConfig(
@@ -420,6 +421,21 @@ async def run() -> None:
             note = f"degraded: {total_fail}/{total_attempted} fetches failed this sweep"
             log.error("SWEEP DEGRADED -- %s (see snapshot.log above for the specific cause -- DNS, rate limiting, or connectivity)", note)
         _write_health(attempted=total_attempted, failed=total_fail, new=total_new, duplicate=total_dup, note=note)
+
+        # Re-scan for mispriced listings against the data this sweep just
+        # refreshed. Free (local SQLite + Isolation Forest, no network) for
+        # every tracked skin; only the top few candidates spend a live call
+        # each to confirm something similar is still findable, and only if
+        # this sweep hasn't already used up the window -- reuses the same
+        # already-open csfloat/store so rate-limit awareness carries over
+        # exactly. See app/pricing/deal_radar.py for the full design.
+        deals = await scan_for_deals(store, csfloat, TRACKED_SKINS)
+        deal_settings = get_settings()
+        Path(deal_settings.deal_candidates_path).write_text(
+            json.dumps(to_result_dict(deals, generated_at=datetime.now(timezone.utc).isoformat()))
+        )
+        log.info("deal radar: %d candidate(s) flagged, %d verified live",
+                  len(deals), sum(d.verified_live for d in deals))
     finally:
         await csfloat.aclose()
         store.close()

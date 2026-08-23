@@ -118,3 +118,19 @@ export interface EvalHistoryRow {
   avg_baseline_mae: number | null;
   avg_csfloat_mae: number | null;
 }
+
+export interface DealCandidate {
+  skin_name: string;
+  float_value: number;
+  price: number;
+  model_price: number;
+  discount_pct: number;
+  last_seen_at: string;
+  verified_live: boolean;
+  sample_count: number;
+}
+
+export interface DealsResponse {
+  generated_at: string | null;
+  candidates: DealCandidate[];
+}

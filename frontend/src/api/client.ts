@@ -3,6 +3,7 @@ import type {
   ContractRequest,
   ContractResult,
   CurveData,
+  DealsResponse,
   EvalHistoryRow,
   PricePrediction,
   PricingStatus,
@@ -77,4 +78,9 @@ export async function getCurveData(skinName: string, stattrak: boolean): Promise
   const params = new URLSearchParams({ skin_name: skinName, stattrak: String(stattrak) });
   const response = await fetch(`/api/pricing/curve?${params}`);
   return handle<CurveData>(response);
+}
+
+export async function getDeals(): Promise<DealsResponse> {
+  const response = await fetch("/api/pricing/deals");
+  return handle<DealsResponse>(response);
 }

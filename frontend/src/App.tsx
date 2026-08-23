@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { ContractForm } from "./components/ContractForm";
+import { DealRadar } from "./components/DealRadar";
 import { PricingInsights } from "./components/PricingInsights";
 import { ResultsPanel } from "./components/ResultsPanel";
 import { evaluateContract } from "./api/client";
 import type { ContractInput, ContractResult } from "./types";
 import "./App.css";
 
-type Tab = "calculator" | "pricing-insights";
+type Tab = "calculator" | "pricing-insights" | "deal-radar";
 
 export default function App() {
   const [tab, setTab] = useState<Tab>("calculator");
@@ -51,17 +52,24 @@ export default function App() {
         >
           Pricing Insights
         </button>
+        <button
+          type="button"
+          className={tab === "deal-radar" ? "tab active" : "tab"}
+          onClick={() => setTab("deal-radar")}
+        >
+          Deal Radar
+        </button>
       </nav>
 
-      {tab === "calculator" ? (
+      {tab === "calculator" && (
         <>
           <ContractForm onSubmit={handleSubmit} submitting={submitting} />
           {error && <div className="error-banner">{error}</div>}
           {result && <ResultsPanel result={result} />}
         </>
-      ) : (
-        <PricingInsights />
       )}
+      {tab === "pricing-insights" && <PricingInsights />}
+      {tab === "deal-radar" && <DealRadar />}
     </div>
   );
 }

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import csv
+import json
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -176,3 +177,15 @@ async def eval_history(settings: Settings = Depends(get_settings)):
                 "avg_csfloat_mae": _cents_to_dollars(float(row["avg_csfloat_mae_cents"])) if row["avg_csfloat_mae_cents"] else None,
             })
     return rows
+
+
+@router.get("/deals")
+async def deals(settings: Settings = Depends(get_settings)):
+    """Currently-flagged mispriced listings from the deal radar (see
+    app/pricing/deal_radar.py) -- best deals in what's been collected so
+    far, not a live scan of the whole market. Read-only: never triggers a
+    new scan, just reads whatever scripts/snapshot.py's last sweep wrote."""
+    path = Path(settings.deal_candidates_path)
+    if not path.exists():
+        return {"generated_at": None, "candidates": []}
+    return json.loads(path.read_text())
