@@ -242,25 +242,31 @@ async def sweep_skin(
     expected_weapon_prefix = skin.name.split(" | ", 1)[0] + " |"
 
     # paint_index is wear-independent, so this spans the skin's whole float
-    # range in one call. The two extreme-sorted queries only ever surface
-    # listings near min_float/max_float though -- confirmed in practice to
-    # leave a wide dead zone with zero points in the middle of a skin's range
-    # (e.g. AK-47 | Redline had nothing between 0.15 and 0.60), which starves
-    # the curve model of the data it needs to fit anything but the edges. Two
-    # more queries narrowed to the middle half of the range (by min/max_float,
-    # not by sort) fill that gap -- both lowest_float and highest_float within
-    # that narrower band, mirroring the full-range pair, since a single sort
-    # within the band was confirmed to just cluster near the band's own low
-    # edge rather than spreading across it (limit=50 per call means a liquid
-    # skin's lowest-float listings in-band don't reach the band's far edge).
+    # range across these queries. Contiguous, non-overlapping bands, each
+    # queried with its own explicit min/max bounds, rather than sorting
+    # from a shared edge -- an earlier version here used a full-range pair
+    # plus a middle-half pair (both sorted lowest_float/highest_float),
+    # which still clustered up to 50 results against whichever edge each
+    # query sorted from. Confirmed live by bucketing real_snapshots into
+    # deciles of each skin's float range: the 10-20% and 30-40% bands came
+    # back systematically empty for nearly every tracked skin, because
+    # nothing ever queried those bands with bounds aimed directly at them
+    # -- the "fix" just moved the same clustering problem to new shared
+    # edges (25%/75% instead of 0%/100%). Disjoint quarters with no shared
+    # edges means every part of the range gets a query pointed straight at
+    # it, so there's no boundary left to cluster against. Same total
+    # request count as before; sort direction alternates per band only so
+    # a band with >50 listings doesn't always favor the same relative edge.
+    N_FLOAT_BANDS = 4
     range_span = skin.max_float - skin.min_float
-    mid_low = skin.min_float + range_span * 0.25
-    mid_high = skin.min_float + range_span * 0.75
-    queries = (
-        ("lowest_float", skin.min_float, skin.max_float),
-        ("highest_float", skin.min_float, skin.max_float),
-        ("lowest_float", mid_low, mid_high),
-        ("highest_float", mid_low, mid_high),
+    band_width = range_span / N_FLOAT_BANDS
+    queries = tuple(
+        (
+            "lowest_float" if i % 2 == 0 else "highest_float",
+            skin.min_float + i * band_width,
+            skin.min_float + (i + 1) * band_width,
+        )
+        for i in range(N_FLOAT_BANDS)
     )
     for sort_by, query_min_float, query_max_float in queries:
         breaker.check_budget(csfloat)
