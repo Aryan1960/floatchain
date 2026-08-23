@@ -903,6 +903,53 @@ header h1 {
   background: var(--series-3);
 }
 
+.tree-diagram-wrap {
+  margin-top: 0.75rem;
+}
+
+.tree-diagram {
+  width: 100%;
+  height: auto;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.5rem 0;
+}
+
+.tree-edge {
+  stroke: var(--border-strong);
+  stroke-width: 1.5;
+}
+
+.tree-split-box {
+  fill: var(--surface-2);
+  stroke: var(--border-strong);
+  stroke-width: 1;
+}
+
+.tree-split-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  fill: var(--text-primary);
+}
+
+.tree-leaf-box {
+  fill: var(--series-1-soft);
+  stroke: var(--series-1);
+  stroke-width: 1;
+}
+
+.tree-leaf-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  fill: var(--series-1-strong);
+}
+
+.tree-diagram-caption {
+  margin-top: 0.5rem;
+}
+
 .predictor-form {
   display: flex;
   flex-wrap: wrap;

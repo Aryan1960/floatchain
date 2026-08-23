@@ -106,6 +106,7 @@ class CurveData:
     outliers_removed: int
     points: list[CurvePoint]
     curve: list[CurveSample]  # empty when model_type is "insufficient_data"
+    first_tree: dict | None  # only present for model_type == "xgboost"; see CurveModel.get_first_tree()
 
 
 def curve_data(store: PricingStore, skin_name: str, stattrak: bool) -> CurveData:
@@ -117,7 +118,7 @@ def curve_data(store: PricingStore, skin_name: str, stattrak: bool) -> CurveData
     triples = store.real_points_with_benchmark(skin_name, stattrak)
     n = len(triples)
     if n == 0:
-        return CurveData(skin_name, stattrak, "insufficient_data", 0, 0, [], [])
+        return CurveData(skin_name, stattrak, "insufficient_data", 0, 0, [], [], None)
 
     floats = np.array([t[0] for t in triples], dtype=float)
     prices = np.array([t[1] for t in triples], dtype=float)
@@ -164,6 +165,8 @@ def curve_data(store: PricingStore, skin_name: str, stattrak: bool) -> CurveData
             fv = lo + span * i / (CURVE_SAMPLE_COUNT - 1)
             curve.append(CurveSample(float_value=fv, price_cents=model.predict(fv)))
 
+    first_tree = model.get_first_tree() if isinstance(model, CurveModel) else None
+
     return CurveData(
         skin_name=skin_name,
         stattrak=stattrak,
@@ -172,6 +175,7 @@ def curve_data(store: PricingStore, skin_name: str, stattrak: bool) -> CurveData
         outliers_removed=outliers_removed,
         points=points,
         curve=curve,
+        first_tree=first_tree,
     )
 
 

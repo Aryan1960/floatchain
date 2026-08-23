@@ -4,6 +4,7 @@ import type { CurveData, EvalHistoryRow, PricePrediction, PricingStatus, Pricing
 import { CurveChart } from "./CurveChart";
 import { EvalTrendChart } from "./EvalTrendChart";
 import { FloatInput } from "./FloatInput";
+import { TreeDiagram } from "./TreeDiagram";
 
 function money(value: number | null): string {
   return value === null ? "—" : `$${value.toFixed(2)}`;
@@ -216,6 +217,17 @@ export function PricingInsights() {
               skinMinFloat={selectedSkin.min_float}
               skinMaxFloat={selectedSkin.max_float}
             />
+          )}
+
+          {curve && (
+            <>
+              <h3>Inside the model</h3>
+              <p className="subtitle">
+                One real tree from {selectedSkin.skin_name}&rsquo;s fitted model &mdash; the actual float thresholds
+                it splits on, not a mockup.
+              </p>
+              <TreeDiagram data={curve} />
+            </>
           )}
         </>
       )}

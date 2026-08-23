@@ -7,7 +7,7 @@ from app.data.pricing_store import PricingStore
 from app.pricing.anomaly import MIN_POINTS_FOR_ANOMALY_DETECTION, AnomalyDetector, filter_outliers
 from app.pricing.curve_model import CurveModel
 from app.pricing.knn_fallback import KnnModel
-from app.pricing.service import detect_anomalies, predict_price
+from app.pricing.service import curve_data, detect_anomalies, predict_price
 
 
 def _decaying_curve(float_value: float, base: float = 10000.0, k: float = 2.5) -> float:
@@ -51,6 +51,34 @@ def test_curve_model_predict_before_fit_raises():
     model = CurveModel()
     with pytest.raises(RuntimeError):
         model.predict(0.5)
+
+
+def test_curve_model_first_tree_none_before_fit():
+    model = CurveModel()
+    assert model.get_first_tree() is None
+
+
+def _assert_valid_tree_node(node: dict) -> None:
+    assert node["type"] in ("split", "leaf")
+    if node["type"] == "leaf":
+        assert isinstance(node["value"], float)
+    else:
+        assert isinstance(node["threshold"], float)
+        _assert_valid_tree_node(node["left"])
+        _assert_valid_tree_node(node["right"])
+
+
+def test_curve_model_first_tree_shape_after_fit():
+    floats, prices = _synthetic_floats_prices(200)
+    model = CurveModel()
+    model.fit(floats, prices)
+
+    tree = model.get_first_tree()
+    assert tree is not None
+    _assert_valid_tree_node(tree)
+    # max_depth=3 means the root always splits -- a single-node "leaf only"
+    # tree would mean the model learned nothing at all from this data.
+    assert tree["type"] == "split"
 
 
 # ---- KnnModel ---------------------------------------------------------------
@@ -239,3 +267,28 @@ def test_detect_anomalies_runs_above_threshold(store):
     # default contamination=0.1 over 30 points should flag a handful, not none/all
     flagged = sum(1 for r in results if r.is_anomaly)
     assert 1 <= flagged <= 8
+
+
+# ---- service.curve_data (first_tree) ----------------------------------------
+
+
+def test_curve_data_first_tree_present_for_xgboost(store):
+    _insert_real_points(store, "Test Skin", n=60)
+    result = curve_data(store, "Test Skin", stattrak=False)
+    assert result.model_type == "xgboost"
+    assert result.first_tree is not None
+    assert result.first_tree["type"] in ("split", "leaf")
+
+
+def test_curve_data_first_tree_none_for_knn(store):
+    _insert_real_points(store, "Test Skin", n=20)
+    result = curve_data(store, "Test Skin", stattrak=False)
+    assert result.model_type == "knn"
+    assert result.first_tree is None
+
+
+def test_curve_data_first_tree_none_for_insufficient_data(store):
+    _insert_real_points(store, "Test Skin", n=3)
+    result = curve_data(store, "Test Skin", stattrak=False)
+    assert result.model_type == "insufficient_data"
+    assert result.first_tree is None

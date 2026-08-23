@@ -85,6 +85,7 @@ async def curve(
             {"float_value": c.float_value, "price": _cents_to_dollars(c.price_cents)}
             for c in result.curve
         ],
+        "first_tree": result.first_tree,
     }
 
 

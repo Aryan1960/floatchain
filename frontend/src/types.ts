@@ -92,6 +92,10 @@ export interface CurveSample {
   price: number;
 }
 
+export type TreeNode =
+  | { type: "split"; threshold: number; left: TreeNode; right: TreeNode }
+  | { type: "leaf"; value: number };
+
 export interface CurveData {
   skin_name: string;
   stattrak: boolean;
@@ -100,6 +104,7 @@ export interface CurveData {
   outliers_removed: number;
   points: CurvePoint[];
   curve: CurveSample[];
+  first_tree: TreeNode | null;
 }
 
 export interface EvalHistoryRow {

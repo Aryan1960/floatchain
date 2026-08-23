@@ -20,10 +20,31 @@ from dragging every prediction up.
 
 from __future__ import annotations
 
+import json
+
 import numpy as np
 from xgboost import XGBRegressor
 
 MIN_POINTS_FOR_XGBOOST = 50
+
+
+def _convert_node(node: dict) -> dict:
+    """XGBoost's raw JSON dump -> {"type": "leaf", "value": ...} or
+    {"type": "split", "threshold": ..., "left": ..., "right": ...}. Only
+    ever one feature ("f0", the float) here, so the split's own feature
+    name carries no information worth keeping. "left" is the yes-branch
+    (float < threshold), "right" the no-branch, matching how the curve
+    chart already reads left-to-right along increasing float."""
+    if "leaf" in node:
+        return {"type": "leaf", "value": node["leaf"]}
+
+    children = {child["nodeid"]: child for child in node["children"]}
+    return {
+        "type": "split",
+        "threshold": node["split_condition"],
+        "left": _convert_node(children[node["yes"]]),
+        "right": _convert_node(children[node["no"]]),
+    }
 
 
 class CurveModel:
@@ -46,6 +67,21 @@ class CurveModel:
             raise RuntimeError("CurveModel.fit() must be called before predict()")
         log_price = self._model.predict(np.array([[float_value]]))[0]
         return float(np.expm1(log_price))
+
+    def get_first_tree(self) -> dict | None:
+        """The first tree in the ensemble (tree 0), as a clean recursive
+        dict -- meaningful to look at on its own in a way later trees
+        aren't, since it's fit close to the raw signal while every tree
+        after it is patching an ever-smaller, ever-noisier residual. Leaf
+        values are the model's raw log-space contribution (it fits
+        log1p(price), see the module docstring) -- NOT a dollar amount on
+        their own; only the sum across all n_estimators trees, run back
+        through expm1, is an actual price. Returns None before fit()."""
+        if not self._fitted:
+            return None
+        dump = self._model.get_booster().get_dump(dump_format="json")
+        raw = json.loads(dump[0])
+        return _convert_node(raw)
 
     def save(self, path: str) -> None:
         import joblib
