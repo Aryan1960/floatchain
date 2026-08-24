@@ -243,31 +243,57 @@ async def sweep_skin(
     expected_weapon_prefix = skin.name.split(" | ", 1)[0] + " |"
 
     # paint_index is wear-independent, so this spans the skin's whole float
-    # range across these queries. Contiguous, non-overlapping bands, each
-    # queried with its own explicit min/max bounds, rather than sorting
-    # from a shared edge -- an earlier version here used a full-range pair
-    # plus a middle-half pair (both sorted lowest_float/highest_float),
-    # which still clustered up to 50 results against whichever edge each
-    # query sorted from. Confirmed live by bucketing real_snapshots into
-    # deciles of each skin's float range: the 10-20% and 30-40% bands came
-    # back systematically empty for nearly every tracked skin, because
-    # nothing ever queried those bands with bounds aimed directly at them
-    # -- the "fix" just moved the same clustering problem to new shared
-    # edges (25%/75% instead of 0%/100%). Disjoint quarters with no shared
-    # edges means every part of the range gets a query pointed straight at
-    # it, so there's no boundary left to cluster against. Same total
-    # request count as before; sort direction alternates per band only so
-    # a band with >50 listings doesn't always favor the same relative edge.
+    # range across these queries. An earlier version here used 4 FIXED
+    # contiguous quarters, queried identically every sweep -- that fixed the
+    # original two-shared-edge dead zones, but confirmed live via a fresh
+    # decile scan of already-collected data: 20 of 24 tracked skins still had
+    # at least one empty decile, because a single 50-capped, direction-sorted
+    # query inside a quarter still clusters against whichever edge it sorts
+    # from once that quarter's real population exceeds 50 -- the same
+    # mechanism, just shrunk. It also meant burning the full request budget
+    # every hour on the same well-covered quarters for ~99% duplicate data
+    # (confirmed live: ~96 requests/sweep for ~8-9 genuinely new rows),
+    # instead of spending any of it on the gaps that actually needed it.
+    #
+    # Now: bucket the skin's real listing-to-date into 10 deciles of its
+    # catalog float range, and query the N_GAP_BANDS deciles with the fewest
+    # points -- each decile is narrow enough (10% of the range) that a
+    # genuinely sparse one won't hit the 50-result cap, so a single targeted
+    # query actually covers it instead of clustering. Filling a decile with
+    # data naturally raises its rank next sweep, so attention shifts to
+    # whatever's still thinnest without needing to track query history
+    # anywhere -- if a decile stays empty because there's just no real
+    # supply there, it also stays cheap to keep re-checking (few/no results
+    # to parse), unlike re-querying an already-saturated band for nothing.
+    # One slot is reserved for the single BEST-covered decile regardless, so
+    # price drift on the liquid, EV-relevant part of the range still gets
+    # tracked rather than every request chasing gaps forever.
+    N_DECILES = 10
     N_FLOAT_BANDS = 4
+    N_GAP_BANDS = N_FLOAT_BANDS - 1
     range_span = skin.max_float - skin.min_float
-    band_width = range_span / N_FLOAT_BANDS
+    decile_width = range_span / N_DECILES
+
+    existing_floats = [f for f, _price in store.real_points_for_skin(skin.name, False)]
+    counts = [0] * N_DECILES
+    for f in existing_floats:
+        idx = min(int((f - skin.min_float) / decile_width), N_DECILES - 1) if decile_width > 0 else 0
+        if 0 <= idx < N_DECILES:
+            counts[idx] += 1
+
+    # sorted() over range(N_DECILES) is a permutation of 10 distinct decile
+    # indices, so the 3 lowest-count and the 1 highest-count positions can
+    # never collide -- no dedup needed.
+    ranked = sorted(range(N_DECILES), key=lambda i: counts[i])
+    target_deciles = ranked[:N_GAP_BANDS] + [ranked[-1]]
+
     queries = tuple(
         (
             "lowest_float" if i % 2 == 0 else "highest_float",
-            skin.min_float + i * band_width,
-            skin.min_float + (i + 1) * band_width,
+            skin.min_float + d * decile_width,
+            skin.min_float + (d + 1) * decile_width,
         )
-        for i in range(N_FLOAT_BANDS)
+        for i, d in enumerate(target_deciles)
     )
     for sort_by, query_min_float, query_max_float in queries:
         breaker.check_budget(csfloat)
