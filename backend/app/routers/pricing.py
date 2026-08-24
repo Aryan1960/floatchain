@@ -49,6 +49,7 @@ async def predict(
         "outliers_removed": result.outliers_removed,
         "csfloat_predicted_price": _cents_to_dollars(result.csfloat_predicted_price_cents),
         "csfloat_reference_float_distance": result.csfloat_reference_float_distance,
+        "nearest_real_float_distance": result.nearest_real_float_distance,
     }
 
 

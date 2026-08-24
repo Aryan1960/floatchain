@@ -240,6 +240,31 @@ def test_predict_price_surfaces_csfloat_benchmark(store):
     assert result.csfloat_reference_float_distance >= 0
 
 
+def test_predict_price_nearest_real_float_distance_is_exact(store):
+    # Two points far apart, nothing near the query float -- the reported
+    # distance should be exactly the gap to the closer one, not an average
+    # or a guess, and independent of outlier filtering / model choice.
+    for i, f in enumerate([0.1, 0.9]):
+        store.upsert_real_snapshot(
+            listing_id=f"gap-{i}",
+            market_hash_name="Gap Skin (Field-Tested)",
+            skin_name="Gap Skin",
+            stattrak=False,
+            float_value=f,
+            price_cents=5000,
+            predicted_price_cents=4800,
+            seen_at="2026-08-12T00:00:00+00:00",
+        )
+    result = predict_price(store, "Gap Skin", stattrak=False, float_value=0.35)
+    assert result.nearest_real_float_distance == pytest.approx(0.25)  # closer to 0.1 than 0.9
+
+
+def test_predict_price_nearest_real_float_distance_none_with_no_data(store):
+    result = predict_price(store, "Empty Skin", stattrak=False, float_value=0.3)
+    assert result.sample_count == 0
+    assert result.nearest_real_float_distance is None
+
+
 def test_predict_price_never_reads_synthetic_table(store):
     # Only synthetic data exists for this skin -- real table is empty.
     store.insert_synthetic(

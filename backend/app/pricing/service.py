@@ -38,6 +38,7 @@ class PricePrediction:
     outliers_removed: int
     csfloat_predicted_price_cents: int | None
     csfloat_reference_float_distance: float | None
+    nearest_real_float_distance: float | None
 
 
 def predict_price(
@@ -63,6 +64,21 @@ def predict_price(
         model_price = None
         model_type = "insufficient_data"
 
+    # How far the closest real listing we've ever collected actually is from
+    # this float -- distinct from outlier filtering (which just excludes bad
+    # prices, not float coverage) and from csfloat_reference_float_distance
+    # below (CSFloat's own nearest reference, not necessarily one of ours).
+    # A model can report a confident-looking price while sitting in the
+    # middle of a real, empty gap in the training data (confirmed live: a
+    # skin with a dense Factory New cluster and a separate Minimal Wear
+    # cluster, nothing in between, produced a wildly-off prediction for a
+    # float that fell in that gap) -- this lets callers tell "grounded in
+    # nearby real data" apart from "extrapolating into a void" instead of
+    # every prediction looking equally confident.
+    nearest_real_float_distance = (
+        float(np.min(np.abs(dataset.floats - float_value))) if len(dataset.floats) > 0 else None
+    )
+
     reference = store.nearest_real_snapshot(skin_name, stattrak, float_value)
     csfloat_predicted_price_cents = None
     csfloat_reference_float_distance = None
@@ -80,6 +96,7 @@ def predict_price(
         outliers_removed=outliers_removed,
         csfloat_predicted_price_cents=csfloat_predicted_price_cents,
         csfloat_reference_float_distance=csfloat_reference_float_distance,
+        nearest_real_float_distance=nearest_real_float_distance,
     )
 
 

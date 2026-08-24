@@ -78,6 +78,7 @@ export interface PricePrediction {
   outliers_removed: number;
   csfloat_predicted_price: number | null;
   csfloat_reference_float_distance: number | null;
+  nearest_real_float_distance: number | null;
 }
 
 export interface CurvePoint {

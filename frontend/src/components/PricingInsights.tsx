@@ -10,6 +10,11 @@ function money(value: number | null): string {
   return value === null ? "—" : `$${value.toFixed(2)}`;
 }
 
+// Same threshold app/data/pricing_store.py already uses (LOCAL_PRICE_MAX_FLOAT_DISTANCE)
+// for "is stored data close enough to trust" -- reused here rather than inventing a
+// second opinion on the same question.
+const NEARBY_REAL_DATA_MAX_DISTANCE = 0.02;
+
 export function PricingInsights() {
   const [status, setStatus] = useState<PricingStatus | null>(null);
   const [history, setHistory] = useState<EvalHistoryRow[]>([]);
@@ -261,6 +266,16 @@ export function PricingInsights() {
               prediction to show.
             </p>
           )}
+          {prediction.model_type !== "insufficient_data" &&
+            prediction.nearest_real_float_distance !== null &&
+            prediction.nearest_real_float_distance > NEARBY_REAL_DATA_MAX_DISTANCE && (
+              <p className="prediction-caveat">
+                The nearest real listing we've actually collected for this skin is {" "}
+                {prediction.nearest_real_float_distance.toFixed(4)} float away — this prediction is extrapolating
+                across a real gap in the data, not reading off a nearby example. Treat it as a rough guess, not a
+                confident number.
+              </p>
+            )}
         </div>
       )}
     </div>
