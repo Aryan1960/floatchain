@@ -158,6 +158,53 @@ def test_real_points_with_metadata_returns_identity_fields(store):
     assert rows == [(0.3, 1000, RECENT, "listing-xyz")]
 
 
+@pytest.mark.asyncio
+async def test_bandit_prefers_unseen_skin_over_skin_with_perfect_history(store, monkeypatch):
+    monkeypatch.setattr(deal_radar, "TOP_N_CANDIDATES", 1)
+    _insert_clean_curve(store, "Unseen Skin", 30, RECENT, seed=1)
+    _insert_one(store, "Unseen Skin", "unseen-cheap", 0.5, price_cents=50, seen_at=RECENT)
+    _insert_clean_curve(store, "Proven Skin", 30, RECENT, seed=2)
+    _insert_one(store, "Proven Skin", "proven-cheap", 0.5, price_cents=50, seen_at=RECENT)
+
+    # Proven Skin has a flawless track record -- still finite (UCB1 caps
+    # out), so a never-checked arm's infinite score must still win.
+    for _ in range(100):
+        store.record_bandit_outcome("Proven Skin", confirmed=True)
+
+    csfloat = FakeCsFloat(remaining=100, price=1.0)
+    await scan_for_deals(store, csfloat, ("Unseen Skin", "Proven Skin"))
+
+    assert csfloat.calls == 1
+    stats = store.get_bandit_stats()
+    assert stats["Unseen Skin"] == (1, 1)  # got its first-ever check
+    assert stats["Proven Skin"] == (100, 100)  # untouched this round
+
+
+@pytest.mark.asyncio
+async def test_bandit_prefers_reliable_skin_over_unreliable_skin_with_bigger_discount(store, monkeypatch):
+    monkeypatch.setattr(deal_radar, "TOP_N_CANDIDATES", 1)
+    _insert_clean_curve(store, "Reliable Skin", 30, RECENT, seed=3)
+    _insert_one(store, "Reliable Skin", "reliable-cheap", 0.5, price_cents=2200, seen_at=RECENT)  # ~20% discount
+    _insert_clean_curve(store, "Unreliable Skin", 30, RECENT, seed=4)
+    _insert_one(store, "Unreliable Skin", "unreliable-cheap", 0.5, price_cents=800, seen_at=RECENT)  # bigger discount
+
+    store.record_bandit_outcome("Reliable Skin", confirmed=True)
+    for _ in range(9):
+        store.record_bandit_outcome("Reliable Skin", confirmed=True)  # 10/10
+    for _ in range(10):
+        store.record_bandit_outcome("Unreliable Skin", confirmed=False)  # 0/10
+
+    csfloat = FakeCsFloat(remaining=100, price=1.0)
+    await scan_for_deals(store, csfloat, ("Reliable Skin", "Unreliable Skin"))
+
+    # Reliable Skin gets checked despite a smaller discount this cycle --
+    # a plain "top N by discount %" ranking would have picked the other one.
+    assert csfloat.calls == 1
+    stats = store.get_bandit_stats()
+    assert stats["Reliable Skin"][0] == 11
+    assert stats["Unreliable Skin"][0] == 10
+
+
 def test_to_result_dict_shape():
     from app.pricing.deal_radar import DealCandidate
 

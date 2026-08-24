@@ -67,9 +67,9 @@ export function DealRadar() {
     <div className="deal-radar">
       <p className="subtitle">
         Listings flagged as mispriced relative to our model's fitted curve, across the tracked skins — real
-        potential deals, not a live scan of the whole market. Refreshes automatically roughly every 1.5 hours, in
-        step with the price collector's own schedule; the top few candidates each get a live check to confirm
-        something similar is still findable, everything else is unverified.
+        potential deals, not a live scan of the whole market. Refreshes automatically in step with the price
+        collector's own schedule (see the "Last scanned" time below); the top few candidates each get a live
+        check to confirm something similar is still findable, everything else is unverified.
       </p>
 
       {loading && <p className="subtitle">Loading…</p>}

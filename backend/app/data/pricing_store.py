@@ -80,6 +80,12 @@ class PricingStore:
             );
             CREATE INDEX IF NOT EXISTS idx_synth_skin
                 ON synthetic_snapshots(skin_name, stattrak);
+
+            CREATE TABLE IF NOT EXISTS bandit_arm_stats (
+                skin_name TEXT PRIMARY KEY,
+                times_checked INTEGER NOT NULL DEFAULT 0,
+                times_confirmed INTEGER NOT NULL DEFAULT 0
+            );
             """
         )
         self._conn.commit()
@@ -281,3 +287,28 @@ class PricingStore:
         ) as c:
             synthetic = c.fetchone()[0]
         return real, synthetic
+
+    def get_bandit_stats(self) -> dict[str, tuple[int, int]]:
+        """skin_name -> (times_checked, times_confirmed), for the deal
+        radar's per-skin verification-budget bandit (app/pricing/
+        deal_radar.py). A skin absent from the result has never been
+        checked -- callers should treat that as "try it first", not as a
+        confirmed-bad track record."""
+        cur = self._conn.execute("SELECT skin_name, times_checked, times_confirmed FROM bandit_arm_stats")
+        return {row["skin_name"]: (row["times_checked"], row["times_confirmed"]) for row in cur.fetchall()}
+
+    def record_bandit_outcome(self, skin_name: str, confirmed: bool) -> None:
+        """Call once per live verification actually spent on this skin --
+        not once per scan, since unverified candidates don't produce a real
+        outcome to learn from."""
+        self._conn.execute(
+            """
+            INSERT INTO bandit_arm_stats (skin_name, times_checked, times_confirmed)
+            VALUES (?, 1, ?)
+            ON CONFLICT(skin_name) DO UPDATE SET
+                times_checked = times_checked + 1,
+                times_confirmed = times_confirmed + excluded.times_confirmed
+            """,
+            (skin_name, int(confirmed)),
+        )
+        self._conn.commit()

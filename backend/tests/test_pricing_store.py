@@ -118,3 +118,25 @@ def test_summary_groups_by_skin_and_stattrak(store):
 
     rows = {r["skin_name"]: r["n"] for r in store.real_summary_by_skin()}
     assert rows == {"AK-47 | Redline": 2, "AWP | Asiimov": 1}
+
+
+def test_bandit_stats_absent_for_never_checked_skin(store):
+    assert store.get_bandit_stats() == {}
+
+
+def test_record_bandit_outcome_accumulates(store):
+    store.record_bandit_outcome("AK-47 | Redline", confirmed=True)
+    store.record_bandit_outcome("AK-47 | Redline", confirmed=False)
+    store.record_bandit_outcome("AK-47 | Redline", confirmed=True)
+
+    assert store.get_bandit_stats() == {"AK-47 | Redline": (3, 2)}
+
+
+def test_record_bandit_outcome_tracks_skins_independently(store):
+    store.record_bandit_outcome("AK-47 | Redline", confirmed=True)
+    store.record_bandit_outcome("AWP | Asiimov", confirmed=False)
+
+    assert store.get_bandit_stats() == {
+        "AK-47 | Redline": (1, 1),
+        "AWP | Asiimov": (1, 0),
+    }
